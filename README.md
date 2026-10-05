@@ -2,17 +2,17 @@
 
 Eine Mod, die deine Nutzung als originalgetreues Minecraft-HUD (Java Edition) über dem Prompt zeigt. In der Desktop-App erscheinen die echten Sprites, im Terminal eine reduzierte Zeile aus farbigen Zeichen, die sich auch abschalten lässt.
 
-> **Privat.** Die Mod nutzt Mojangs Original-Sprites. Installiert wird sie aus dem lokalen Marketplace `cc-mod-minecraft-hud`. Ihr Code liegt zusätzlich im **privaten** GitHub-Repo [`ron-mandic/cc-mod-minecraft-hud`](https://github.com/ron-mandic/cc-mod-minecraft-hud), dort ohne die Mojang-Assets. Siehe [Privat halten](#privat-halten).
+> **Privat.** Die Mod nutzt Mojangs Original-Sprites. Installiert wird sie aus dem lokalen Marketplace `ron-mandic`. Ihr Code liegt zusätzlich im **privaten** GitHub-Repo [`ron-mandic/cc-mod-minecraft-hud`](https://github.com/ron-mandic/cc-mod-minecraft-hud), dort ohne die Mojang-Assets. Siehe [Privat halten](#privat-halten).
 
 ## Kurzanleitung
 
-- **Installiert** ist die Mod user-weit, also in jedem Repo: `minecraft-hud@cc-mod-minecraft-hud`, aus `~/Git Projects/cc-mod-minecraft-hud`. Neue Sitzungen laden sie von selbst, eine offene Sitzung mit `/reload-plugins`.
-- **Geändert?** Version in `plugin.json` erhöhen, `claude plugin update minecraft-hud@cc-mod-minecraft-hud`, neu starten.
+- **Installiert** ist die Mod user-weit, also in jedem Repo: `minecraft-hud@ron-mandic`, aus `~/Git Projects/cc-mod-minecraft-hud`. Neue Sitzungen laden sie von selbst, eine offene Sitzung mit `/reload-plugins`.
+- **Geändert?** Version in `plugin.json` erhöhen, `claude plugin update minecraft-hud@ron-mandic`, neu starten.
 - **`/hud`** zeigt alle Werte und Einstellungen.
 - **`/hud aus`** oder **`/hud an`** schaltet nur für das aktuelle Repo.
 - **`/hud terminal aus`** blendet sie nur in der CLI aus.
 - **`/hud größe auto|1|1.5|2|3`** und **`/hud zahlen voll|kurz|aus`** ändern Größe und Spalten.
-- **Ganz aus:** `claude plugin disable minecraft-hud@cc-mod-minecraft-hud` (überall) oder mit `--scope local` (nur im aktuellen Repo).
+- **Ganz aus:** `claude plugin disable minecraft-hud@ron-mandic` (überall) oder mit `--scope local` (nur im aktuellen Repo).
 
 > Die Bilder zeigen Mojang-Sprites und liegen deshalb nur lokal vor, nicht im Git-Repo. Neu erzeugen: `bun plugins/minecraft-hud/tools/preview.ts --docs`.
 
@@ -82,12 +82,12 @@ Die Breite des Bands kennt die Mod in Zellen der Code-Schrift (`bodyColumns`). `
 
 ## Installieren
 
-Seit dem 5. Oktober 2026 ist die Mod **user-weit installiert** (`~/.claude/settings.json` → `enabledPlugins`). Der Marketplace `cc-mod-minecraft-hud` zeigt auf diesen Ordner, `~/Git Projects/cc-mod-minecraft-hud`. Claude Code installiert eine **Kopie** der Version aus `plugin.json` nach `~/.claude/plugins/cache/cc-mod-minecraft-hud/`.
+Seit dem 5. Oktober 2026 ist die Mod **user-weit installiert** (`~/.claude/settings.json` → `enabledPlugins`). Der Marketplace `ron-mandic` zeigt auf diesen Ordner, `~/Git Projects/cc-mod-minecraft-hud`. Claude Code installiert eine **Kopie** der Version aus `plugin.json` nach `~/.claude/plugins/cache/ron-mandic/`.
 
 Nach einer Änderung hier: `version` in `plugins/minecraft-hud/.claude-plugin/plugin.json` erhöhen, dann
 
 ```bash
-claude plugin update minecraft-hud@cc-mod-minecraft-hud
+claude plugin update minecraft-hud@ron-mandic
 ```
 
 Danach Claude Code neu starten oder `/reload-plugins` ausführen.
@@ -107,24 +107,24 @@ python3 "$HOME/Git Projects/cc-mod-minecraft-hud/plugins/minecraft-hud/tools/fet
 ```
 
 ```bash
-claude plugin install minecraft-hud@cc-mod-minecraft-hud --scope user
+claude plugin install minecraft-hud@ron-mandic --scope user
 ```
 
 Der dritte Befehl holt die Sprites von Mojangs Servern. Nach einem frischen Klon ist er nötig, weil die Assets nicht in Git stehen. Direkt vom GitHub-Repo zu installieren geht deshalb nicht: Claude Code würde den Klon ohne Assets laden. Statt `--scope user` installiert `--scope local` die Mod nur im aktuellen Repo, Eintrag in `.claude/settings.local.json`. Ob sie läuft, zeigt `/plugin` mit der Zeile `1 mod active · minecraft-hud`.
 
-> Verschiebst du diesen Ordner, führe `claude plugin marketplace remove cc-mod-minecraft-hud` aus und danach `add` mit dem neuen Pfad. `remove` deinstalliert die Mod, installiere sie danach also neu.
+> Verschiebst du diesen Ordner, führe `claude plugin marketplace remove ron-mandic` aus und danach `add` mit dem neuen Pfad. `remove` deinstalliert die Mod, installiere sie danach also neu.
 
 ## Ein- und ausschalten
 
 | Ich will … | So geht's | Wirkung |
 | :- | :- | :- |
 | das HUD **in diesem Repo** aus/an | `/hud aus` · `/hud an` | Sofort und dauerhaft für dieses Repo (Schlüssel: das Git-Root). Die Mod bleibt geladen, zeichnet aber nichts und fragt nichts ab. |
-| die Mod **in einem Repo komplett** entladen | `claude plugin disable minecraft-hud@cc-mod-minecraft-hud --scope local` (im Repo ausführen) | Schreibt `false` in `.claude/settings.local.json` dieses Repos. Zurück mit `claude plugin enable … --scope local`. |
+| die Mod **in einem Repo komplett** entladen | `claude plugin disable minecraft-hud@ron-mandic --scope local` (im Repo ausführen) | Schreibt `false` in `.claude/settings.local.json` dieses Repos. Zurück mit `claude plugin enable … --scope local`. |
 | **im Terminal (CLI)** nichts sehen | `/hud terminal aus` | Die Desktop-App zeigt das HUD weiter. |
 | im Terminal **nur Text** in der Statuszeile | `/hud terminal status` | Keine zusätzliche Zeile: `Sitzung 6 % · Reset 16:30 · Woche 16 % · Fable 0 % · Kontext 49 %` |
 | im Terminal die **reduzierte Zeile** (Standard) | `/hud terminal kompakt` | Eine farbige Zeile ohne Sprites: Balken links, Werte rechts, bei schmalem Fenster nur die wichtigsten Werte. |
 | das HUD **überall** aus | `/hud global aus` | Repos mit eigenem `/hud an` bleiben an. |
-| die Mod **überall** deaktivieren | `claude plugin disable minecraft-hud@cc-mod-minecraft-hud` | Wieder an mit `enable`. Komplett weg mit `claude plugin uninstall minecraft-hud@cc-mod-minecraft-hud`. |
+| die Mod **überall** deaktivieren | `claude plugin disable minecraft-hud@ron-mandic` | Wieder an mit `enable`. Komplett weg mit `claude plugin uninstall minecraft-hud@ron-mandic`. |
 | **alle** Mods für eine Sitzung aus | `claude --safe-mode` | Schaltet auch deine anderen Anpassungen ab. |
 | alles auf Anfang | `/hud reset` | Löscht deine `/hud`-Einstellungen (global und für dieses Repo). |
 
@@ -150,7 +150,7 @@ Dieselben Einstellungen gibt es als Optionen der Mod: im Terminal unter `/config
 ```json
 {
   "pluginConfigs": {
-    "minecraft-hud@cc-mod-minecraft-hud": {
+    "minecraft-hud@ron-mandic": {
       "options": {
         "desktop_scale": "auto",
         "terminal_style": "compact",
@@ -192,7 +192,7 @@ claude plugin validate "$HOME/Git Projects/cc-mod-minecraft-hud/plugins/minecraf
 claude plugin test "$HOME/Git Projects/cc-mod-minecraft-hud/plugins/minecraft-hud"
 ```
 
-Danach Version erhöhen, `claude plugin update minecraft-hud@cc-mod-minecraft-hud` ausführen und neu starten (siehe [Installieren](#installieren)). `bun plugins/minecraft-hud/tools/preview.ts` zeigt das Band vorher in `docs/preview.html` bei mehreren Chatbreiten. Am bequemsten: Claude bitten („Mach die Rüstung zur Opus-Nutzung“). Der eingebaute Skill `plugin-authoring` kennt die Mods-API und lädt Änderungen per Hot-Reload.
+Danach Version erhöhen, `claude plugin update minecraft-hud@ron-mandic` ausführen und neu starten (siehe [Installieren](#installieren)). `bun plugins/minecraft-hud/tools/preview.ts` zeigt das Band vorher in `docs/preview.html` bei mehreren Chatbreiten. Am bequemsten: Claude bitten („Mach die Rüstung zur Opus-Nutzung“). Der eingebaute Skill `plugin-authoring` kennt die Mods-API und lädt Änderungen per Hot-Reload.
 
 ## Terminal (CLI): Voraussetzungen
 

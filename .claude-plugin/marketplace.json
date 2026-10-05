@@ -1,9 +1,9 @@
 {
-  "name": "cc-mod-minecraft-hud",
+  "name": "ron-mandic",
   "owner": {
     "name": "ron-mandic"
   },
-  "description": "Private, nur lokale Claude-Code-Mods. Nicht veröffentlichen: minecraft-hud nutzt Mojangs Original-Assets.",
+  "description": "ron-mandic private Claude-Code-Mods. Nur lokal installieren, nicht veröffentlichen: minecraft-hud nutzt Mojangs Original-Assets.",
   "plugins": [
     {
       "name": "minecraft-hud",

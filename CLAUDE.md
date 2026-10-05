@@ -1,6 +1,23 @@
 # cc-mod-minecraft-hud: notes for agents
 
-ron-mandic's private Claude Code marketplace `cc-mod-minecraft-hud` (`.claude-plugin/marketplace.json`, registered as a local directory source). It holds one mod, `plugins/minecraft-hud`. The git remote is the **private** GitHub repo `ron-mandic/cc-mod-minecraft-hud`. The naming scheme is one repo per mod, `cc-mod-<mod>`, with the marketplace named like the repo. The user guide is `README.md` (German). ron-mandic works in German, mostly in the Claude desktop app (Code tab).
+ron-mandic's mod `minecraft-hud` for Claude Code, in `plugins/minecraft-hud`. The folder doubles as ron-mandic's private marketplace `ron-mandic` (`.claude-plugin/marketplace.json`, registered as a local directory source). The git remote is the **private** GitHub repo `ron-mandic/cc-mod-minecraft-hud`.
+
+## Naming (decided 2026-10-05)
+
+| Level | Name | Rule |
+| :- | :- | :- |
+| GitHub repo | `cc-mod-minecraft-hud` | `cc-mod-<mod>`, one repo per mod; the prefix groups the mods among ron-mandic's repos |
+| Plugin | `minecraft-hud` | the mod's own name, no prefix (inside Claude Code, "cc-mod" would repeat itself) |
+| Marketplace | `ron-mandic` | the publisher namespace, the same for every mod |
+| Plugin ID | `minecraft-hud@ron-mandic` | `<mod>@ron-mandic`, kept stable from now on |
+
+Claude Code registers one marketplace per name, so a second mod repo cannot also declare `ron-mandic` while this folder is registered. When mod #2 comes:
+
+1. Move `.claude-plugin/marketplace.json` into one catalog repo (suggested: `ron-mandic/cc-marketplace`, still named `ron-mandic`).
+2. Add each `cc-mod-*` repo to it as a git submodule under `plugins/<mod>`.
+3. Register the catalog instead of this folder.
+
+The IDs stay `<mod>@ron-mandic`, and each mod keeps its own repo. Use submodules, not `github` sources, because a fresh clone lacks the git-ignored assets. The user guide is `README.md` (German). ron-mandic works in German, mostly in the Claude desktop app (Code tab).
 
 ## Never publish
 
@@ -13,12 +30,12 @@ minecraft-hud draws Mojang's original Minecraft sprites and font. They may not b
 
 ## Install state
 
-Installed user-wide since 2026-10-05: `minecraft-hud@cc-mod-minecraft-hud`, `enabledPlugins` in `~/.claude/settings.json`. The marketplace is declared in `extraKnownMarketplaces` as `{ "source": "directory", "path": "$HOME/projects/cc-mod-minecraft-hud" }`.
+Installed user-wide since 2026-10-05: `minecraft-hud@ron-mandic`, `enabledPlugins` in `~/.claude/settings.json`. The marketplace is declared in `extraKnownMarketplaces` as `{ "source": "directory", "path": "$HOME/projects/cc-mod-minecraft-hud" }`.
 
-The install is a copy pinned to `version`, at `~/.claude/plugins/cache/cc-mod-minecraft-hud/minecraft-hud/<version>/`; it is not loaded in place. To ship a change:
+The install is a copy pinned to `version`, at `~/.claude/plugins/cache/ron-mandic/minecraft-hud/<version>/`; it is not loaded in place. To ship a change:
 
 1. Bump `version` in `plugins/minecraft-hud/.claude-plugin/plugin.json`.
-2. Run `claude plugin update minecraft-hud@cc-mod-minecraft-hud`.
+2. Run `claude plugin update minecraft-hud@ron-mandic`.
 3. Restart, or run `/reload-plugins`.
 
 0.2.1 is current.
@@ -85,12 +102,12 @@ Type-check: use the tsconfig from the header of the `claude-code.d.ts` the plugi
 **Avoid a double band.** The installed copy loads in every session, so a hot-reloaded dev copy would draw a second band and register `/hud` twice. Develop in a session opened in this folder, and switch the installed copy off for this folder only:
 
 ```bash
-claude plugin disable minecraft-hud@cc-mod-minecraft-hud --scope local
+claude plugin disable minecraft-hud@ron-mandic --scope local
 ```
 
 This writes `.claude/settings.local.json` here. Afterwards, re-enable it with `enable … --scope local`.
 
-Without hot reload: edit here, bump `version`, run `claude plugin update minecraft-hud@cc-mod-minecraft-hud`, then `/reload-plugins`.
+Without hot reload: edit here, bump `version`, run `claude plugin update minecraft-hud@ron-mandic`, then `/reload-plugins`.
 
 When removing anything, move it to `~/.Trash` and never delete it outright. Retired copies from 2026-10-05 went there; this folder and the private GitHub repo are the only copies kept.
 
