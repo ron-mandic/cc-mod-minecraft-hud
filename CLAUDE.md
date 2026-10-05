@@ -92,7 +92,7 @@ This writes `.claude/settings.local.json` here. Afterwards, re-enable it with `e
 
 Without hot reload: edit here, bump `version`, run `claude plugin update minecraft-hud@cc-mod-minecraft-hud`, then `/reload-plugins`.
 
-When removing anything, move it to `~/.Trash` and never delete it outright. Old copies from 2026-10-05 sit in `~/.Trash/minecraft-hud-cleanup/`.
+When removing anything, move it to `~/.Trash` and never delete it outright. Retired copies from 2026-10-05 went there; this folder and the private GitHub repo are the only copies kept.
 
 ## Open ends
 
