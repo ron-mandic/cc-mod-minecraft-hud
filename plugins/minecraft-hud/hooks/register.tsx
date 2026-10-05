@@ -52,8 +52,9 @@ const pickOne = <T,>(value: unknown, allowed: readonly T[], fallback: T): T =>
 let options: PluginOptions = {}
 let live: LiveReading = { at: 0, models: {} }
 let isFetching = false
-/** The band's width in cells as last drawn, for `/hud debug`. */
-let bandColumns: number | undefined
+/** What the band last drew, or why it could not, for `/hud debug`. */
+let lastDrawn: { at: number; surface: string; images: number; scale: number; columns: number } | undefined
+let lastDrawError: string | undefined
 
 async function loadPrefs($: EngineInterface): Promise<HudPrefs> {
   const repo = (await $.session.repo())?.root ?? (await $.session.root())
@@ -259,7 +260,10 @@ async function runCommand($: EngineInterface, args: string): Promise<string> {
       `Problem: ${plan?.problem ?? 'keins'}${plan?.retryAt !== undefined && plan.retryAt > now ? ` · nächster Versuch in ${Math.round((plan.retryAt - now) / 1000)} s` : ''}`,
       `Sitzungswerte: ${live.at === 0 ? 'unbekannten Alters' : age(live.at)} · ${[live.session && 'five_hour', live.week && 'seven_day', ...Object.keys(live.models)].filter(Boolean).join(', ') || 'keine Limits'}`,
       `Repo-Schlüssel: ${prefs.repo}`,
-      `Band: ${bandColumns === undefined ? 'noch nicht gezeichnet' : `${bandColumns} Zellen breit`}`,
+      lastDrawn === undefined
+        ? 'Band: noch nicht gezeichnet'
+        : `Band: ${age(lastDrawn.at)} auf ${lastDrawn.surface} gezeichnet · ${lastDrawn.images} Bilder · Größe ${String(lastDrawn.scale).replace('.', ',')} · ${lastDrawn.columns} Zellen breit`,
+      `Band-Fehler: ${lastDrawError ?? 'keiner'}`,
     ].join('\n')
   } else if (isOn(first) || isOff(first)) {
     await saveRepo($, prefs.repo, isOn(first))
@@ -396,19 +400,25 @@ export const register: Register = (on, pluginOptions) => {
       )
     }
     const { Box, Svg } = $.ui.resolve(e)
-    bandColumns = e.props.bodyColumns
-    const band = layoutBand(snapshot, prefs, { now, random: Math.random, bodyColumns: e.props.bodyColumns })
+    let band
+    try {
+      band = layoutBand(snapshot, prefs, { now, random: Math.random, bodyColumns: e.props.bodyColumns })
+      lastDrawError = undefined
+    } catch (error) {
+      lastDrawError = String(error)
+      return next(e)
+    }
+    const drawings = [band.hud, ...band.columns]
+    lastDrawn = { at: now, surface: e.surface, images: drawings.length, scale: band.scale, columns: e.props.bodyColumns }
     const theirs = await next(e)
-    // images, not interactive frames, so they stay transparent on every theme; the row spreads them
-    // across the whole band (space-between), and wraps rather than squeezes them if the guess of its
-    // width was too generous
+    // Images, not interactive frames, so they stay transparent on every theme. Each one gets its
+    // size: without it an image in a flex row can collapse to nothing. The row is as wide as the
+    // band already, so space-between spreads the HUD and the columns across it.
     return (
-      <Box flexDirection="column" width="100%">
-        <Box flexDirection="row" flexWrap="wrap" justifyContent="space-between" alignItems="flex-start" width="100%">
-          {[band.hud, ...band.columns].map(drawing => (
-            <Box flexShrink={0}>
-              <Svg source={drawing.svg} alt={drawing.alt} />
-            </Box>
+      <Box flexDirection="column">
+        <Box flexDirection="row" justifyContent="space-between" alignItems="center">
+          {drawings.map(drawing => (
+            <Svg source={drawing.svg} alt={drawing.alt} width={drawing.width} height={drawing.height} />
           ))}
         </Box>
         {theirs}
