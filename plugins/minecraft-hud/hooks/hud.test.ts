@@ -1,6 +1,6 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 
-import { HUD_HEIGHT, HUD_WIDTH, bandWidth, columnWidth, drawColumn, drawHud, layoutBand, textWidth } from './desktop'
+import { HUD_HEIGHT, HUD_WIDTH, bandWidth, columnWidth, drawHud, layoutBand, textWidth } from './desktop'
 import { fold, statusText, terminalBand } from './terminal'
 import { columnsOf, resetText } from './text'
 import { halvesLeft, liveOf, merge, parsePlan, planResultOf } from './usage'
@@ -112,7 +112,6 @@ describe('drawing', () => {
     if (session === undefined) return
     const later = { ...session, value: '100 %', detail: 'Reset Mi 00:00' }
     expect(columnWidth(later)).toBe(columnWidth(session))
-    expect(drawColumn(session, 1.5).width).toBe(columnWidth(session) * 1.5)
     expect(textWidth('Reset')).toBe(27)
   })
 
@@ -126,7 +125,10 @@ describe('drawing', () => {
     expect(middle.scale).toBe(1.5)
     const narrow = layoutBand(snapshot, prefs, { now: NOW, random, bodyColumns: 60 })
     expect(narrow.scale).toBe(1.5)
-    expect(narrow.columns.map(column => column.alt.split(' ')[0])).toEqual(['Sitzung', 'Kontext'])
+    expect(narrow.columns.map(column => column.label)).toEqual(['Sitzung', 'Kontext'])
+    // one image as wide as the band, the columns spread inside it
+    expect(narrow.drawing.width).toBeLessThanOrEqual(60 * 7.8)
+    expect(narrow.drawing.width).toBeGreaterThan(60 * 7.8 - 2)
     const fixed = layoutBand(snapshot, { scale: 3, numbers: 'off' }, { now: NOW, random, bodyColumns: 200 })
     expect(fixed.scale).toBe(3)
     expect(fixed.columns).toHaveLength(0)
@@ -182,9 +184,11 @@ test('the band draws on every surface the session can show', { timeoutMs: 10_000
   const svg = await desktop.find({ type: 'Svg' })
   expect(String(svg?.props.source)).toContain('<svg')
   expect(svg?.props.isInteractive).toBeUndefined()
-  // the HUD first, then one image per column; at 100 cells the other model's column is given up
+  // one image for the whole band: the HUD and its columns; at 100 cells the other model's column is given up
   const images = await desktop.findAll({ type: 'Svg' })
-  expect(images.map(image => String(image.props.alt).split(' ')[0])).toEqual(['Minecraft-HUD:', 'Sitzung', 'Woche', 'Fable', 'Kontext'])
+  expect(images).toHaveLength(1)
+  expect(String(images[0]?.props.alt)).toMatch(/^Minecraft-HUD: .* · Sitzung .* · Woche .* · Fable .* · Kontext /)
+  expect(images[0]?.props.width).toBeGreaterThan(0)
   await desktop.unmount()
 
   const terminal = await $.ui.mount({ plugin: 'minecraft-hud', surface: 'terminal', component: 'AbovePrompt', props: BAND_PROPS })

@@ -31,12 +31,11 @@ const layout = (snapshot: typeof LIVE, width: number) =>
 
 function bandHtml(width: number, snapshot: typeof LIVE, label: string, background = '#262626') {
   const band = layout(snapshot, width)
-  const images = [band.hud, ...band.columns]
-    .map(d => `<div style="flex-shrink:0"><img alt="" width="${d.width}" height="${d.height}" src="data:image/svg+xml;base64,${Buffer.from(d.svg).toString('base64')}"></div>`)
-    .join('')
+  const d = band.drawing
+  const image = `<img alt="" width="${d.width}" height="${d.height}" src="data:image/svg+xml;base64,${Buffer.from(d.svg).toString('base64')}">`
   return (
     `<p>${label} · Größe ${String(band.scale).replace('.', ',')} · ${band.columns.length} Spalten</p>` +
-    `<div style="width:${width}px;box-sizing:border-box;background:${background};border-radius:12px;padding:${PAD}px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start">${images}</div>`
+    `<div style="width:${width}px;box-sizing:border-box;background:${background};border-radius:12px;padding:${PAD}px">${image}</div>`
   )
 }
 
@@ -47,20 +46,18 @@ function terminalHtml(columns: number) {
   return `<div style="display:flex;justify-content:space-between;width:${columns}ch">${'<span>' + fold(band.left).map(span).join('') + '</span>'}${'<span>' + band.right.map(span).join('') + '</span>'}</div>`
 }
 
-/** One band as a PNG at device pixel ratio 2, its pieces spread as space-between does. */
+/** One band as a PNG at device pixel ratio 2, as the desktop draws its one image. */
 function bandPng(path: string, width: number) {
   const band = layout(LIVE, width)
   const dpr = 2
-  const items = [band.hud, ...band.columns].map(d => rasterize(d.svg, band.scale * dpr, [38, 38, 38]))
+  const image = rasterize(band.drawing.svg, band.scale * dpr, [38, 38, 38])
   const W = width * dpr
-  const H = (items[0]?.h ?? 0) + 2 * PAD * dpr
+  const H = image.h + 2 * PAD * dpr
   const out = new Uint8Array(W * H * 4)
   for (let i = 0; i < W * H; i++) out.set([38, 38, 38, 255], i * 4)
-  const gap = items.length > 1 ? (W - 2 * PAD * dpr - items.reduce((sum, it) => sum + it.w, 0)) / (items.length - 1) : 0
-  let x = PAD * dpr
-  for (const it of items) {
-    for (let y = 0; y < it.h; y++) out.set(it.px.subarray(y * it.w * 4, (y + 1) * it.w * 4), ((y + PAD * dpr) * W + Math.round(x)) * 4)
-    x += it.w + gap
+  for (let y = 0; y < image.h; y++) {
+    const row = image.px.subarray(y * image.w * 4, Math.min(image.w, W - 2 * PAD * dpr) * 4 + y * image.w * 4)
+    out.set(row, ((y + PAD * dpr) * W + PAD * dpr) * 4)
   }
   writePng(path, W, H, out)
   console.log('wrote', path)

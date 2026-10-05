@@ -244,12 +244,13 @@ const svgOf = (viewWidth: number, scale: number, defs: string, body: string) =>
   ` width="${Math.round(viewWidth * scale * 100) / 100}" height="${Math.round(HUD_HEIGHT * scale * 100) / 100}"` +
   ` shape-rendering="crispEdges"><defs>${defs}</defs>${body}</svg>`
 
-/** The HUD itself, the vanilla layout without the hotbar, at `scale` CSS pixels per sprite pixel. */
-export function drawHud(snapshot: HudSnapshot, args: DrawArgs): DesktopDrawing {
-  const writer = new Writer()
-  const sprites =
-    experience(snapshot, writer) + armor(snapshot) + air(snapshot, args) + hearts(snapshot, args) + food(snapshot, args)
-  const alt = [
+/** The HUD's sprites, the vanilla layout without the hotbar; its level digits go through `writer`. */
+function hudSprites(snapshot: HudSnapshot, args: DrawArgs, writer: Writer) {
+  return experience(snapshot, writer) + armor(snapshot) + air(snapshot, args) + hearts(snapshot, args) + food(snapshot, args)
+}
+
+function hudAlt(snapshot: HudSnapshot) {
+  return [
     `Herzen ${count(halvesLeft(snapshot.week))} von 10`,
     snapshot.fable === undefined ? undefined : `Rüstung ${count(halvesLeft(snapshot.fable))} von 10`,
     `Hunger ${count(halvesLeft(snapshot.session))} von 10`,
@@ -258,9 +259,15 @@ export function drawHud(snapshot: HudSnapshot, args: DrawArgs): DesktopDrawing {
   ]
     .filter(part => part !== undefined)
     .join(', ')
+}
+
+/** The HUD alone, at `scale` CSS pixels per sprite pixel. */
+export function drawHud(snapshot: HudSnapshot, args: DrawArgs): DesktopDrawing {
+  const writer = new Writer()
+  const sprites = hudSprites(snapshot, args, writer)
   return {
     svg: svgOf(HUD_WIDTH, args.scale, SPRITE_DEFS + writer.defs(), sprites + writer.body()),
-    alt: `Minecraft-HUD: ${alt}`,
+    alt: `Minecraft-HUD: ${hudAlt(snapshot)}`,
     width: Math.round(HUD_WIDTH * args.scale * 100) / 100,
     height: Math.round(HUD_HEIGHT * args.scale * 100) / 100,
   }
@@ -277,21 +284,13 @@ export function columnWidth(column: HudColumn): number {
   return Math.max(textWidth(column.label), textWidth(column.value), textWidth('100 %'), detail) + 1
 }
 
-/** One column: label, figure and detail on the HUD's three rows, in the game's font with its shadow. */
-export function drawColumn(column: HudColumn, scale: number): DesktopDrawing {
-  const writer = new Writer()
+/** One column at `x`: label, figure and detail on the HUD's three rows, in the game's font with its shadow. */
+function writeColumn(writer: Writer, column: HudColumn, x: number) {
   const [labelY, valueY, detailY] = COLUMN_LINES
-  writer.write(column.label, 0, labelY, LABEL_COLOR)
-  writer.write(column.value, 0, valueY, VALUE_COLOR)
+  writer.write(column.label, x, labelY, LABEL_COLOR)
+  writer.write(column.value, x, valueY, VALUE_COLOR)
   if (column.detail !== '') {
-    writer.write(column.detail, 0, detailY, LABEL_COLOR)
-  }
-  const width = columnWidth(column)
-  return {
-    svg: svgOf(width, scale, writer.defs(), writer.body()),
-    alt: [column.label, column.value, column.detail].filter(part => part !== '').join(' '),
-    width: Math.round(width * scale * 100) / 100,
-    height: Math.round(HUD_HEIGHT * scale * 100) / 100,
+    writer.write(column.detail, x, detailY, LABEL_COLOR)
   }
 }
 
@@ -316,7 +315,7 @@ const GIVE_UP: readonly (readonly ['detail' | 'column', string])[] = [
   ['column', 'session'],
 ]
 
-export type BandLayout = { scale: number; hud: DesktopDrawing; columns: DesktopDrawing[] }
+export type BandLayout = { scale: number; drawing: DesktopDrawing; columns: HudColumn[] }
 
 /** How many of GIVE_UP's first steps scale 2 may take and still count as having room for everything. */
 const LARGE_ENOUGH = 2
@@ -354,11 +353,12 @@ function fit(wanted: readonly HudColumn[], scale: number, room: number): { colum
 }
 
 /**
- * Lays the band out for the room `bodyColumns` gives. With `auto` it takes scale 2 where the HUD and
+ * Lays the band out for the room `bodyColumns` gives, as ONE image (the desktop draws one sized
+ * image reliably; a row of several drew nothing). With `auto` it takes scale 2 where the HUD and
  * every column fit (giving up at most the details another column repeats), else 1.5 with as much as
- * fits there, details before columns, the session last. The surface spreads what is left across the
- * band (space-between), so a wider band grows the gaps, never the pixels: the art stays crisp and the
- * band keeps its height.
+ * fits there, details before columns, the session last. Inside the image the HUD sits left and the
+ * columns are spread over the rest (space-between), so a wider band grows the gaps, never the
+ * pixels: the art stays crisp and the band keeps its height.
  */
 export function layoutBand(
   snapshot: HudSnapshot,
@@ -374,9 +374,30 @@ export function layoutBand(
     scale = bandWidth([], 1.5) <= room ? 1.5 : 1
     laid = fit(wanted, scale, room)
   }
+  const columns = laid.columns
+  const widths = columns.map(columnWidth)
+  const content = HUD_WIDTH + widths.reduce((sum, width) => sum + width, 0)
+  const leastGap = Math.ceil(MIN_GAP_PX / scale)
+  // the image fills the band where its width is known; otherwise the least gaps
+  const viewWidth = Number.isFinite(room) ? Math.max(content + leastGap * columns.length, Math.floor(room / scale)) : content + leastGap * columns.length
+  const gap = columns.length === 0 ? 0 : (viewWidth - content) / columns.length
+  const writer = new Writer()
+  const sprites = hudSprites(snapshot, { ...args, scale }, writer)
+  let x = HUD_WIDTH
+  columns.forEach((column, i) => {
+    x += gap
+    writeColumn(writer, column, Math.round(x))
+    x += widths[i] ?? 0
+  })
+  const alt = [`Minecraft-HUD: ${hudAlt(snapshot)}`, ...columns.map(column => [column.label, column.value, column.detail].filter(part => part !== '').join(' '))].join(' · ')
   return {
     scale,
-    hud: drawHud(snapshot, { ...args, scale }),
-    columns: laid.columns.map(column => drawColumn(column, scale)),
+    columns,
+    drawing: {
+      svg: svgOf(viewWidth, scale, SPRITE_DEFS + writer.defs(), sprites + writer.body()),
+      alt,
+      width: Math.round(viewWidth * scale * 100) / 100,
+      height: Math.round(HUD_HEIGHT * scale * 100) / 100,
+    },
   }
 }

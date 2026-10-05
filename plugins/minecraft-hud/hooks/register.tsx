@@ -408,19 +408,13 @@ export const register: Register = (on, pluginOptions) => {
       lastDrawError = String(error)
       return next(e)
     }
-    const drawings = [band.hud, ...band.columns]
-    lastDrawn = { at: now, surface: e.surface, images: drawings.length, scale: band.scale, columns: e.props.bodyColumns }
+    lastDrawn = { at: now, surface: e.surface, images: 1, scale: band.scale, columns: e.props.bodyColumns }
     const theirs = await next(e)
-    // Images, not interactive frames, so they stay transparent on every theme. Each one gets its
-    // size: without it an image in a flex row can collapse to nothing. The row is as wide as the
-    // band already, so space-between spreads the HUD and the columns across it.
+    // One sized image, not an interactive frame, so it stays transparent on every theme; the layout
+    // across the band (space-between) happens inside it.
     return (
       <Box flexDirection="column">
-        <Box flexDirection="row" justifyContent="space-between" alignItems="center">
-          {drawings.map(drawing => (
-            <Svg source={drawing.svg} alt={drawing.alt} width={drawing.width} height={drawing.height} />
-          ))}
-        </Box>
+        <Svg source={band.drawing.svg} alt={band.drawing.alt} width={band.drawing.width} height={band.drawing.height} />
         {theirs}
       </Box>
     )

@@ -38,7 +38,7 @@ The install is a copy pinned to `version`, at `~/.claude/plugins/cache/ron-mandi
 2. Run `claude plugin update minecraft-hud@ron-mandic`.
 3. Restart, or run `/reload-plugins`.
 
-0.2.2 is current.
+0.2.3 is current.
 
 ## What the mod shows
 
@@ -77,11 +77,11 @@ Icons show what is left, rounded up like health. Text columns show what is used.
 
 ## Rendering, and what was learned the hard way
 
-- **Desktop band.** A `Box` row with `justifyContent="space-between"` and `flexWrap="wrap"`: the HUD image first, then one image per column (Sitzung, Woche, Fable, Sonnet, Kontext).
+- **Desktop band.** **One** sized `Svg`: the HUD at left, the columns (Sitzung, Woche, Fable, Sonnet, Kontext) spread across the rest. `layoutBand` computes the space-between itself from `bodyColumns × CELL_PX`; the surface scales the image down if that guess is too wide.
 - **Pixel geometry.** Columns have 3 text lines on the HUD rows (y 0/10/20), height 28. Columns reserve their widest form, so the band does not shift.
 - **Scale.** `auto`: 2 if everything fits, tolerating only the `LARGE_ENOUGH` first give-ups; else 1.5. The art is never scaled by a non-step factor.
 - **Plain `Svg` only.** `isInteractive` puts the SVG in a frame with an opaque white background, so there are no tooltips. Plain images are transparent on both themes.
-- **Always pass `width` and `height` to every `Svg`.** 0.2.1 left them out and wrapped the images in `width="100%"`/`flexWrap`/`flexShrink` boxes; the desktop then showed no band at all (the test kit still passed). Proven on the desktop: a row `Box` with `flexDirection`, `justifyContent`, `alignItems` and sized `Svg`s. The row spans the band by itself.
+- **Keep the band to one sized `Svg`, and always pass it `width` and `height`.** 0.2.1 and 0.2.2 drew a row of several `Svg`s (first unsized, in `width="100%"`/`flexWrap` boxes, then sized in a plain row), and the desktop showed no band at all, while the test kit passed. A single sized image is what the desktop drew.
 - **When the band is missing,** run `/hud debug`. Its `Band:` lines say whether the hook drew, what, and any error. Refusals of an installed mod go only to the engine's debug log.
 - **Text** is drawn in the Minecraft bitmap font with the game's shadow (colour >> 2, offset 1,1). ron-mandic wants plain words, no icon strings: `Reset 16:30`, `Reset Mi 00:00`, `98k von 200k`. The hooks environment has the local timezone (Europe/Berlin).
 - **`CELL_PX = 7.8`** turns `bodyColumns` into CSS px. It is an estimate: `/hud debug` shows the real cell count; adjust if columns drop too early or wrap.
