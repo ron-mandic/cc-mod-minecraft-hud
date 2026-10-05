@@ -1,0 +1,17 @@
+# Mojang's assets (sprites, font sheets, font table) and everything derived from them stay out of
+# version control: they may not be redistributed. Fetch them locally from Mojang's own servers with
+#   python3 plugins/minecraft-hud/tools/fetch_assets.py
+plugins/minecraft-hud/assets/
+plugins/minecraft-hud/hooks/sprites.ts
+# the previews show the sprites too
+docs/*.png
+docs/preview.html
+
+# per-person Claude Code settings
+.claude/settings.local.json
+
+# written by the engine when it loads a mod from a folder you own
+.claude-plugin/types/
+plugins/*/.claude-plugin/types/
+plugins/*/tsconfig.json
+.DS_Store

@@ -1,0 +1,14 @@
+{
+  "name": "cc-mod-minecraft-hud",
+  "owner": {
+    "name": "ron-mandic"
+  },
+  "description": "Private, nur lokale Claude-Code-Mods. Nicht veröffentlichen: minecraft-hud nutzt Mojangs Original-Assets.",
+  "plugins": [
+    {
+      "name": "minecraft-hud",
+      "source": "./plugins/minecraft-hud",
+      "description": "Minecraft-HUD über dem Prompt: Herzen = Wochenlimit, Rüstung = Fable, Hunger = 5-Stunden-Limit, XP = Kontextfenster"
+    }
+  ]
+}

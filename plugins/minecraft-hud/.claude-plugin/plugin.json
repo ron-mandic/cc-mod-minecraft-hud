@@ -1,0 +1,46 @@
+{
+  "name": "minecraft-hud",
+  "displayName": "Minecraft HUD",
+  "version": "0.2.1",
+  "description": "Minecraft-HUD über dem Prompt: Herzen = Wochenlimit, Rüstung = Fable, Hunger = 5-Stunden-Limit, XP = Kontextfenster",
+  "author": { "name": "ron-mandic" },
+  "keywords": ["hud", "usage", "minecraft", "mod"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "desktop_scale": {
+      "type": "string",
+      "title": "Größe in der Desktop-App",
+      "description": "CSS-Pixel je Sprite-Pixel. auto: 2, wenn HUD und alle Spalten mit Details in die Breite passen, sonst 1,5 · oder fest 1, 1.5, 2, 3",
+      "options": ["auto", "1", "1.5", "2", "3"],
+      "default": "auto"
+    },
+    "terminal_style": {
+      "type": "string",
+      "title": "Darstellung im Terminal",
+      "description": "compact: eine farbige Zeile über dem Prompt · status: nur Text in der Statuszeile · off: im Terminal nichts",
+      "options": ["compact", "status", "off"],
+      "default": "compact"
+    },
+    "numbers": {
+      "type": "string",
+      "title": "Spalten neben dem HUD",
+      "description": "Sitzung, Woche, Fable, Kontext als Spalten über die ganze Breite – full: mit Reset-Uhrzeit und Tokens · short: nur die Prozente · off: nur das HUD",
+      "options": ["off", "short", "full"],
+      "default": "full"
+    },
+    "warnings": {
+      "type": "boolean",
+      "title": "Warnungen ab 90 %",
+      "description": "Ein Toast pro Limit-Fenster, wenn Sitzung, Woche oder Fable 90 % erreichen",
+      "default": true
+    },
+    "refresh_minutes": {
+      "type": "number",
+      "title": "Abfrage-Intervall (Minuten)",
+      "description": "Wie oft der Usage-Endpoint im Leerlauf gefragt wird; nach jedem Turn ohnehin (höchstens alle 2 Minuten)",
+      "default": 5,
+      "min": 2,
+      "max": 60
+    }
+  }
+}
