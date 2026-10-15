@@ -161,10 +161,10 @@ describe('drawing', () => {
     const initial = { ...snapshot, air: undefined, context: { window: 1_000_000 } }
     const measured = { ...initial, context: { window: 1_000_000, tokens: 924_000, percent: 92 } }
     expect(columnsOf(initial, NOW).find(column => column.key === 'context')).toEqual({
-      key: 'context', label: 'Kontext', value: '?', detail: '? / 1M',
+      key: 'context', label: 'Kontext', value: '0 %', detail: '0 / 1M',
     })
     expect(columnsOf({ ...initial, context: undefined }, NOW).find(column => column.key === 'context')).toEqual({
-      key: 'context', label: 'Kontext', value: '?', detail: '',
+      key: 'context', label: 'Kontext', value: '0 %', detail: '0 Tokens',
     })
     expect(columnsOf({ ...initial, context: { window: 1_000_000, tokens: 0, percent: 0 } }, NOW)
       .find(column => column.key === 'context')?.value).toBe('0 %')
@@ -174,7 +174,7 @@ describe('drawing', () => {
       const later = layoutBand(measured, prefs, { now: NOW, random, bodyColumns })
       expect(first.columns.map(column => column.key)).toEqual(['session', 'week', 'fable', 'context'])
       expect(first.columnStarts).toEqual(later.columnStarts)
-      expect(first.drawing.alt).toContain('Kontext ? ? / 1M')
+      expect(first.drawing.alt).toContain('Kontext 0 % 0 / 1M')
       expect(first.drawing.svg).not.toContain('href="#lv"')
     }
     const off = layoutBand(initial, { scale: 1.5, numbers: 'off' }, { now: NOW, random, bodyColumns: 100 })

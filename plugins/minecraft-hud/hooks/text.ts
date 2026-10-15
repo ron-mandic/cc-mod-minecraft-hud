@@ -127,7 +127,7 @@ const limitColumn = (key: string, label: string, limit: HudLimit | undefined, no
 /**
  * The columns in reading order: the session first (it runs out soonest), then the weekly windows,
  * the other model while it is in use, and the context last, as the XP bar closes the HUD.
- * Unknown budgets have no column; context keeps a placeholder until the first measurement.
+ * Unknown budgets have no column; context starts visually at zero until the first measurement.
  */
 export function columnsOf(snapshot: HudSnapshot, now: number): HudColumn[] {
   const context = snapshot.context
@@ -139,9 +139,9 @@ export function columnsOf(snapshot: HudSnapshot, now: number): HudColumn[] {
     {
       key: 'context',
       label: 'Kontext',
-      value: context?.percent === undefined ? '?' : `${Math.round(context.percent)} %`,
-      detail: context === undefined ? '' :
-        `${context.tokens === undefined ? '?' : shortTokens(context.tokens)} / ${shortTokens(context.window)}`,
+      value: `${Math.round(context?.percent ?? 0)} %`,
+      detail: context === undefined ? '0 Tokens' :
+        `${shortTokens(context.tokens ?? 0)} / ${shortTokens(context.window)}`,
     },
   ]
 }
