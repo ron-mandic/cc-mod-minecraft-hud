@@ -38,7 +38,7 @@ The install is a copy pinned to `version`, at `~/.claude/plugins/cache/ron-mandi
 2. Run `claude plugin update minecraft-hud@ron-mandic`.
 3. Restart, or run `/reload-plugins`.
 
-0.2.3 is current.
+0.2.4 is current.
 
 ## What the mod shows
 
