@@ -78,7 +78,8 @@ Icons show what is left, rounded up like health. Text columns show what is used.
 ## Rendering, and what was learned the hard way
 
 - **Desktop band.** **One** sized `Svg`: the HUD at left, the columns (Sitzung, Woche, Fable, Sonnet, Kontext) spread across the rest. `layoutBand` computes the space-between itself from `bodyColumns × CELL_PX`; the surface scales the image down if that guess is too wide.
-- **Pixel geometry.** Columns have 3 text lines on the HUD rows (y 0/10/20), height 28. Columns reserve their widest form, so the band does not shift.
+- **Pixel geometry.** Columns have 3 text lines on the HUD rows (y 0/10/20), height 28. Columns reserve their widest form, so the band does not shift; the context reserves `000k von <window>` (`1M` from a million on).
+- **Dividers.** A 1-px rule (`DIVIDER_*`, label grey at 0.3) between each two columns, centred between the left column's ink (`inkWidth`) and the next start, not in the reserved gap. Desktop only.
 - **Scale.** `auto`: 2 if everything fits, tolerating only the `LARGE_ENOUGH` first give-ups; else 1.5. The art is never scaled by a non-step factor.
 - **Plain `Svg` only.** `isInteractive` puts the SVG in a frame with an opaque white background, so there are no tooltips. Plain images are transparent on both themes.
 - **Keep the band to one sized `Svg`, and always pass it `width` and `height`.** 0.2.1 and 0.2.2 drew a row of several `Svg`s (first unsized, in `width="100%"`/`flexWrap` boxes, then sized in a plain row), and the desktop showed no band at all, while the test kit passed. A single sized image is what the desktop drew.

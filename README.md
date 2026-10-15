@@ -48,7 +48,9 @@ Rechts neben dem HUD steht pro Wert eine Spalte in der **Minecraft-Schrift**, mi
 | **Woche** | 7-Tage-Limit, genutzt | `Reset Mi 00:00` |
 | **Fable** | Fable-Wochenlimit, genutzt | `Reset Mi 00:00` |
 | **Sonnet** | nur, wenn du Sonnet nutzt | `Reset …` |
-| **Kontext** | Kontextfenster, belegt | `98k von 200k` (Tokens) |
+| **Kontext** | Kontextfenster, belegt | `98k von 200k` (Tokens), ab einer Million `684k von 1M` |
+
+Zwischen zwei Spalten steht eine feine senkrechte Linie (Label-Grau, 30 % Deckkraft). Sie sitzt mittig zwischen dem Ende des sichtbaren Texts und der nächsten Spalte, nicht mitten im reservierten Platz, damit sie neben einem kurzen `Reset 14:20` nicht schief wirkt. Nur in der Desktop-App, das Terminal trennt mit Leerzeichen.
 
 Es gibt keine Symbole, alles steht in Worten und Uhrzeiten. Labels und Details sind dunkelgrau, Werte hellgrau, beide ruhiger als die Sprites. Jedes Teil ist ein **transparentes Bild** und sieht in hellem und dunklem Theme gleich aus. Ab 90 % zeigt die Mod einen einmaligen Hinweis pro Limit-Fenster, etwa „Dein Hunger-Balken ist fast leer …“.
 
@@ -58,7 +60,7 @@ Das Band ist ein Flex-Container mit `space-between`: das HUD links, die Spalten 
 
 - **Was mitwächst:** die Abstände, und die Größe in einer Stufe. Mit `auto` (Standard) gilt Größe **2**, wenn HUD und alle Spalten hineinpassen, sonst **1,5**. Die Pixel-Art wird nie stufenlos skaliert: Krumme Faktoren machen Sprites unscharf, und die Höhe des Bands soll ruhig bleiben (42 px bei 1,5, 56 px bei 2).
 - **Was bei Enge wegfällt,** in dieser Reihenfolge: das Wochen-Reset (der Fable-Reset gilt meist auch für die Woche), die Sonnet-Spalte, das Fable-Reset, die Wochen-Spalte, die Tokens, die Fable-Spalte. Danach folgen das Sitzungs-Reset und die Kontext-Spalte (den Kontext zeigt das XP-Level weiter an), zuletzt die Sitzung.
-- **Die Spalten springen nicht:** Jede Spalte reserviert die Breite ihrer längsten Form (`100 %`, `Reset Mi 00:00`).
+- **Die Spalten springen nicht:** Jede Spalte reserviert die Breite ihrer längsten Form (`100 %`, `Reset Mi 00:00`, beim Kontext `000k von 1M` bzw. `000k von 200k`).
 
 | Chatbreite | Größe | Spalten |
 | :- | :- | :- |
