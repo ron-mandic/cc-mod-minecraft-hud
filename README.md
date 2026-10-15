@@ -50,13 +50,13 @@ Rechts neben dem HUD steht pro Wert eine Spalte in der **Minecraft-Schrift**, mi
 | **Sonnet** | nur, wenn du Sonnet nutzt | `Reset …` |
 | **Kontext** | Kontextfenster, belegt | `98k von 200k` (Tokens), ab einer Million `684k von 1M` |
 
-Zwischen zwei Spalten steht eine feine senkrechte Linie (Label-Grau, 30 % Deckkraft). Sie sitzt mittig zwischen dem Ende des sichtbaren Texts und der nächsten Spalte, nicht mitten im reservierten Platz, damit sie neben einem kurzen `Reset 14:20` nicht schief wirkt. Nur in der Desktop-App, das Terminal trennt mit Leerzeichen.
+Eine einzige feine senkrechte Linie (Label-Grau, 30 % Deckkraft) trennt **Sitzung** vom **Wochenblock** (Woche, Fable und ggf. Sonnet). Sie sitzt mittig zwischen dem sichtbaren Textende der Sitzung und dem ersten Wochenwert. Fehlt „Woche“, bleibt sie vor Fable bzw. Sonnet; fehlt die Sitzung oder der gesamte Wochenblock, entfällt sie. Zwischen Sitzung und Kontext allein steht also keine Linie. Nur in der Desktop-App, das Terminal bleibt unverändert.
 
 Es gibt keine Symbole, alles steht in Worten und Uhrzeiten. Labels und Details sind dunkelgrau, Werte hellgrau, beide ruhiger als die Sprites. Jedes Teil ist ein **transparentes Bild** und sieht in hellem und dunklem Theme gleich aus. Ab 90 % zeigt die Mod einen einmaligen Hinweis pro Limit-Fenster, etwa „Dein Hunger-Balken ist fast leer …“.
 
 ## Breite und Größe
 
-Das Band ist ein Flex-Container mit `space-between`: das HUD links, die Spalten gleichmäßig verteilt bis zum rechten Rand, egal wie breit der Chat ist.
+Das Band ist ein einziges SVG mit selbst berechnetem `space-between`: **HUD · Sitzung | Wochenblock · Kontext**. Woche, Fable und Sonnet bilden eine kompakte Gruppe mit festen 12 px Abstand zwischen ihren reservierten Spaltenbreiten. Zwischen den Gruppen sind mindestens 24 px Platz; nur diese äußeren Abstände wachsen mit der Chatbreite. Kontext bleibt rechts als eigener Abschluss ohne weitere Linie. Platzbedarf und Zeichnung verwenden dieselben Gruppenregeln.
 
 - **Was mitwächst:** die Abstände, und die Größe in einer Stufe. Mit `auto` (Standard) gilt Größe **2**, wenn HUD und alle Spalten hineinpassen, sonst **1,5**. Die Pixel-Art wird nie stufenlos skaliert: Krumme Faktoren machen Sprites unscharf, und die Höhe des Bands soll ruhig bleiben (42 px bei 1,5, 56 px bei 2).
 - **Was bei Enge wegfällt,** in dieser Reihenfolge: das Wochen-Reset (der Fable-Reset gilt meist auch für die Woche), die Sonnet-Spalte, das Fable-Reset, die Wochen-Spalte, die Tokens, die Fable-Spalte. Danach folgen das Sitzungs-Reset und die Kontext-Spalte (den Kontext zeigt das XP-Level weiter an), zuletzt die Sitzung.

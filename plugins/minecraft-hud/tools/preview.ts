@@ -1,5 +1,5 @@
 // Previews the band without a session: `bun tools/preview.ts` writes docs/preview.html (the desktop band at
-// several chat widths, laid out with CSS flex space-between as the desktop does, plus the terminal
+// several chat widths, grouped inside one SVG as the desktop does, plus the terminal
 // line); `bun tools/preview.ts --docs` also renders the README images in ../../docs pixel-exact.
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -21,6 +21,7 @@ const LIVE = {
   source: 'endpoint' as const,
 }
 const SONNET = { ...LIVE, air: { used: 37, model: 'Sonnet', resetsAt: '2026-10-06T22:00:00+00:00' } }
+const MILLION = { ...LIVE, context: { window: 1_000_000, tokens: 684_000, percent: 68.4 } }
 const TIGHT = { ...LIVE, week: { ...LIVE.week, used: 86 }, session: { ...LIVE.session, used: 83 }, context: { window: 200000, tokens: 182000, percent: 91 } }
 /** The desktop band's padding and its cell width in CSS px, as desktop.ts assumes it (CELL_PX). */
 const PAD = 12
@@ -66,6 +67,7 @@ function bandPng(path: string, width: number) {
 let html = '<!doctype html><meta charset="utf-8"><title>minecraft-hud preview</title><body style="background:#1a1a1a;color:#999;font:12px Menlo,monospace;padding:16px">'
 for (const width of [1500, 1200, 1000, 900, 770, 680, 560, 440]) html += bandHtml(width, LIVE, `${width} px Chatbreite`)
 html += bandHtml(1000, SONNET, '1000 px · mit Sonnet') + bandHtml(770, TIGHT, '770 px · knapp') + bandHtml(770, LIVE, '770 px · hell', '#f4f3ef')
+for (const width of [1200, 796, 700, 560]) html += bandHtml(width, MILLION, `${width} px · 1M-Kontext`)
 html += '<p>Terminal, 140 / 100 / 80 / 60 / 40 Spalten</p><pre>' + [140, 100, 80, 60, 40].map(terminalHtml).join('') + '</pre>'
 // beside the README, outside the plugin folder, so an install does not copy it along
 const PREVIEW = join(ROOT, '..', '..', 'docs', 'preview.html')
