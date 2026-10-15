@@ -207,7 +207,24 @@ describe('drawing', () => {
     expect(band.columns[2]?.detail).toMatch(RESET)
     expect(band.columns[3]?.detail).toBe('785K / 1M')
     const gap = (band.columnStarts[2]! - band.columnStarts[1]! - columnWidth(band.columns[1]!)) * band.scale
-    expect(gap).toBe(24)
+    expect(gap).toBeGreaterThanOrEqual(24 - band.scale)
+  })
+
+  test('Fable balances whitespace between week and context', () => {
+    const reading = { ...snapshot, air: undefined }
+    for (const bodyColumns of [96, 120, 200]) {
+      const band = layoutBand(reading, { scale: 1.5, numbers: 'full' }, { now: NOW, random, bodyColumns })
+      const week = band.columns.findIndex(column => column.key === 'week')
+      const fable = band.columns.findIndex(column => column.key === 'fable')
+      const context = band.columns.findIndex(column => column.key === 'context')
+      expect(fable).toBe(week + 1)
+      expect(context).toBe(fable + 1)
+      const left = band.columnStarts[fable]! - band.columnStarts[week]! - columnWidth(band.columns[week]!)
+      const right = band.columnStarts[context]! - band.columnStarts[fable]! - columnWidth(band.columns[fable]!)
+      expect(Math.abs(left - right)).toBeLessThanOrEqual(1)
+      expect(left * band.scale).toBeGreaterThanOrEqual(24 - band.scale)
+      expect(right * band.scale).toBeGreaterThanOrEqual(32 - band.scale)
+    }
   })
 
   test('responsive groups never overlap or leave an orphan divider', () => {

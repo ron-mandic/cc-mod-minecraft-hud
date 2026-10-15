@@ -62,6 +62,8 @@ Das Band ist ein einziges SVG mit selbst berechnetem `space-between`: **HUD · S
 - **Was bei Enge wegfällt,** in dieser Reihenfolge: das Wochen-Reset (der Fable-Reset gilt meist auch für die Woche), die Sonnet-Spalte, das Fable-Reset, die Wochen-Spalte, die Tokens, die Fable-Spalte. Danach folgen das Sitzungs-Reset und die Kontext-Spalte (den Kontext zeigt das XP-Level weiter an), zuletzt die Sitzung.
 - **Die Spalten springen nicht:** Jede Spalte reserviert die Breite ihrer längsten Form (`100 %`, `Mi 00:00`, beim Kontext `000K / 1M` bzw. `000K / 200K`). Die kürzeren Texte sparen auch tatsächlich reservierten Platz.
 
+Steht Fable direkt zwischen Woche und Kontext, wird die gesamte Fable-Spalte im vorhandenen Zwischenraum optisch zentriert: links und rechts möglichst gleich viel Luft, Text weiterhin linksbündig. Woche und Kontext bewegen sich dabei nicht; Mindestabstände und Ausblendungsgrenzen bleiben erhalten. Mit Sonnet oder fehlenden Nachbarspalten gilt das normale Gruppenlayout.
+
 Die Umschaltpunkte hängen von den vorhandenen Werten ab (z. B. Sonnet-Spalte und Fenstergröße). Die lokale Vorschau zeigt mehrere Breiten mit 200K- und 1M-Kontext; die kürzeren Uhrzeiten und Token-Verhältnisse lassen Details länger sichtbar bleiben.
 
 Die Breite des Bands kennt die Mod in Zellen der Code-Schrift (`bodyColumns`). `CELL_PX` oben in `hooks/desktop.ts` rechnet sie in Pixel um (7,8 px je Zelle). `/hud debug` zeigt, wie viele Zellen dein Band hat.

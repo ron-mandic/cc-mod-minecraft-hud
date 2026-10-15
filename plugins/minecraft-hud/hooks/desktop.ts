@@ -305,6 +305,20 @@ const startsGroup = (columns: readonly HudColumn[], i: number) =>
 
 const minimumGaps = (columns: readonly HudColumn[]) =>
   columns.map((_, i) => startsGroup(columns, i) ? MIN_GAP_PX : WEEK_GAP_PX)
+/** Balance Fable's whitespace without moving week/context or reducing minimum group spacing. */
+function balanceFable(columns: readonly HudColumn[], starts: number[], widths: readonly number[], scale: number) {
+  const i = columns.findIndex(column => column.key === 'fable')
+  if (i < 1 || columns[i - 1]?.key !== 'week' || columns[i + 1]?.key !== 'context') {
+    return
+  }
+  const leftEnd = starts[i - 1]! + widths[i - 1]!
+  const rightStart = starts[i + 1]!
+  const centered = (leftEnd + rightStart - widths[i]!) / 2
+  // Tight bands retain the larger context-group gap rather than forcing optical symmetry.
+  const minimum = leftEnd + WEEK_GAP_PX / scale
+  const maximum = rightStart - widths[i]! - MIN_GAP_PX / scale
+  starts[i] = Math.round(Math.max(minimum, Math.min(centered, maximum)))
+}
 
 /** One rule only when both the session and a weekly budget survived fitting. */
 function divider(columns: readonly HudColumn[], starts: readonly number[]) {
@@ -431,9 +445,10 @@ export function layoutBand(
   columns.forEach((column, i) => {
     x += (gaps[i] ?? 0) + (startsGroup(columns, i) ? extra : 0)
     starts.push(Math.round(x))
-    writeColumn(writer, column, Math.round(x))
     x += widths[i] ?? 0
   })
+  balanceFable(columns, starts, widths, scale)
+  columns.forEach((column, i) => writeColumn(writer, column, starts[i]!))
   const alt = [`Minecraft-HUD: ${hudAlt(snapshot)}`, ...columns.map(column => [column.label, column.value, column.detail].filter(part => part !== '').join(' '))].join(' · ')
   return {
     scale,
