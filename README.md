@@ -49,13 +49,13 @@ Im Desktop-Band entfallen Füllwörter: Uhrzeiten ohne „Reset“, Token-Verhä
 
 ## Breite und Größe
 
-Das Band ist ein einziges SVG mit selbst berechnetem `space-between`: **HUD · Sitzung | Wochenblock · Kontext**. Woche, Fable und Sonnet bilden eine kompakte Gruppe mit festen 24 px Abstand zwischen ihren reservierten Spaltenbreiten. Zwischen den Gruppen sind mindestens 32 px Platz; nur diese äußeren Abstände wachsen mit der Chatbreite. Kontext bleibt rechts als eigener Abschluss ohne weitere Linie. Platzbedarf und Zeichnung verwenden dieselben Gruppenregeln.
+Das Band ist ein einziges SVG mit selbst berechnetem `space-between`: **HUD · Sitzung | Woche Fable Sonnet Kontext**. Alle Textspalten rechts vom Strich bilden eine gemeinsame Anzeigegruppe: feste 24 px Abstand zwischen ihren reservierten Spaltenbreiten, auch wenn Woche oder Sonnet bei schmalem Fenster entfallen. Kontext bekommt keinen eigenen wachsenden Außenabstand mehr. Für die Trennung zur Sitzung sind mindestens 64 px reserviert, damit auf beiden Seiten des Strichs mehr Luft bleibt als innerhalb der rechten Gruppe. Zwischen HUD und Text sind mindestens 32 px Platz; nur die äußeren Gruppenabstände wachsen mit der Chatbreite. Platzbedarf und Zeichnung verwenden dieselben Gruppenregeln.
 
 - **Standard:** feste Größe **1,5**, auch in neuen Repos und Chats (42 px Bandhöhe). Zusätzliche Breite wächst in die Abstände, nicht in die Icons. Optional wählt `auto` Größe **2**, wenn HUD und alle Spalten hineinpassen, sonst **1,5**. Die Pixel-Art wird nie stufenlos skaliert.
 - **Was bei Enge wegfällt,** in dieser Reihenfolge: das Wochen-Reset (der Fable-Reset gilt meist auch für die Woche), die Sonnet-Spalte, das Fable-Reset, die Wochen-Spalte, die Tokens, die Fable-Spalte. Danach folgen das Sitzungs-Reset und die Kontext-Spalte (den Kontext zeigt das XP-Level weiter an), zuletzt die Sitzung.
 - **Die Spalten springen nicht:** Jede Spalte reserviert die Breite ihrer längsten Form (`100 %`, `Mi 00:00`, beim Kontext `000K / 1M` bzw. `000K / 200K`). Die kürzeren Texte sparen auch tatsächlich reservierten Platz.
 
-Steht Fable direkt zwischen Woche und Kontext, wird die gesamte Fable-Spalte im vorhandenen Zwischenraum optisch zentriert: links und rechts möglichst gleich viel Luft, Text weiterhin linksbündig. Woche und Kontext bewegen sich dabei nicht; Mindestabstände und Ausblendungsgrenzen bleiben erhalten. Mit Sonnet oder fehlenden Nachbarspalten gilt das normale Gruppenlayout.
+Fable folgt derselben Abstandsregel wie alle anderen rechten Spalten und braucht keine nachträgliche Sonderzentrierung mehr. Die Textzeilen bleiben linksbündig. Bei Enge gilt weiterhin die bestehende Ausblendungsreihenfolge; die sichtbaren Spalten bleiben in derselben Gruppe.
 
 Die Umschaltpunkte hängen von den vorhandenen Werten ab (z. B. Sonnet-Spalte und Fenstergröße). Die lokale Vorschau zeigt mehrere Breiten mit 200K- und 1M-Kontext; die kürzeren Uhrzeiten und Token-Verhältnisse lassen Details länger sichtbar bleiben.
 
