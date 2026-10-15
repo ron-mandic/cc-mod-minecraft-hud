@@ -33,9 +33,9 @@ const DIVIDER_OPACITY = 0.3
 const DIVIDER_TOP = 1
 const DIVIDER_HEIGHT = HUD_HEIGHT - 2
 /** Minimum group spacing in CSS pixels; only group boundaries absorb surplus room. */
-const MIN_GAP_PX = 24
+const MIN_GAP_PX = 32
 /** Weekly budgets stay together even in a wide band. */
-const WEEK_GAP_PX = 12
+const WEEK_GAP_PX = 24
 /** A desktop band cell in CSS pixels (its code font's advance), to turn `bodyColumns` into room. */
 const CELL_PX = 7.8
 

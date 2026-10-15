@@ -77,7 +77,7 @@ Icons show what is left, rounded up like health. Text columns show what is used.
 
 ## Rendering, and what was learned the hard way
 
-- **Desktop band.** **One** sized `Svg`: HUD, session, weekly block (week/Fable/Sonnet), context. `layoutBand` computes space-between from `bodyColumns × CELL_PX`: `groupOf`/`minimumGaps` keep weekly columns at 12 CSS px and spread only group boundaries (minimum 24 px). `bandWidth` uses the same gap policy as drawing. The surface scales down if the room estimate is too wide.
+- **Desktop band.** **One** sized `Svg`: HUD, session, weekly block (week/Fable/Sonnet), context. `layoutBand` computes space-between from `bodyColumns × CELL_PX`: `groupOf`/`minimumGaps` keep weekly columns at 24 CSS px and spread only group boundaries (minimum 32 px). `bandWidth` uses the same gap policy as drawing. The surface scales down if the room estimate is too wide.
 - **Pixel geometry.** Columns have 3 text lines on the HUD rows (y 0/10/20), height 28. Columns reserve their widest form, so the band does not shift; the context reserves `000k von <window>` (`1M` from a million on).
 - **Divider.** Exactly one 1-px rule (`DIVIDER_*`, label grey at 0.3) between session and the first surviving weekly column, centred after session ink (`inkWidth`). No rule if either group is absent, never between session and context alone. Desktop only; terminal layout is independent and unchanged.
 - **Scale.** `auto`: 2 if everything fits, tolerating only the `LARGE_ENOUGH` first give-ups; else 1.5. The art is never scaled by a non-step factor.

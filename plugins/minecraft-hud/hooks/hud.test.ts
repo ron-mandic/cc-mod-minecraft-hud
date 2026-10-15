@@ -179,11 +179,27 @@ describe('drawing', () => {
       const band = layoutBand(snapshot, { scale: 2, numbers: 'full' }, { now: NOW, random, bodyColumns })
       const gapAfter = (i: number) =>
         (band.columnStarts[i + 1]! - band.columnStarts[i]! - columnWidth(band.columns[i]!)) * band.scale
-      expect(gapAfter(1)).toBe(12) // week -> Fable
-      expect(gapAfter(2)).toBe(12) // Fable -> Sonnet
+      expect(gapAfter(1)).toBe(24) // week -> Fable
+      expect(gapAfter(2)).toBe(24) // Fable -> Sonnet
       expect(gapAfter(0)).toBeGreaterThan(gapAfter(1)) // session -> weekly
       expect(gapAfter(3)).toBeGreaterThan(gapAfter(2)) // weekly -> context
     }
+  })
+
+  test('a screenshot-sized 1M band separates week from Fable without losing its reset', () => {
+    const reading = {
+      ...snapshot,
+      air: undefined,
+      context: { window: 1_000_000, tokens: 785_000, percent: 79 },
+    }
+    const band = layoutBand(reading, { scale: 'auto', numbers: 'full' }, { now: NOW, random, bodyColumns: 96 })
+    expect(band.scale).toBe(1.5)
+    expect(band.columns.map(column => column.key)).toEqual(['session', 'week', 'fable', 'context'])
+    expect(band.columns[1]?.detail).toBe('')
+    expect(band.columns[2]?.detail).toMatch(RESET)
+    expect(band.columns[3]?.detail).toBe('785k von 1M')
+    const gap = (band.columnStarts[2]! - band.columnStarts[1]! - columnWidth(band.columns[1]!)) * band.scale
+    expect(gap).toBe(24)
   })
 
   test('responsive groups never overlap or leave an orphan divider', () => {

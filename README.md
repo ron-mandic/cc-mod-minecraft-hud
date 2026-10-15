@@ -56,7 +56,7 @@ Es gibt keine Symbole, alles steht in Worten und Uhrzeiten. Labels und Details s
 
 ## Breite und Größe
 
-Das Band ist ein einziges SVG mit selbst berechnetem `space-between`: **HUD · Sitzung | Wochenblock · Kontext**. Woche, Fable und Sonnet bilden eine kompakte Gruppe mit festen 12 px Abstand zwischen ihren reservierten Spaltenbreiten. Zwischen den Gruppen sind mindestens 24 px Platz; nur diese äußeren Abstände wachsen mit der Chatbreite. Kontext bleibt rechts als eigener Abschluss ohne weitere Linie. Platzbedarf und Zeichnung verwenden dieselben Gruppenregeln.
+Das Band ist ein einziges SVG mit selbst berechnetem `space-between`: **HUD · Sitzung | Wochenblock · Kontext**. Woche, Fable und Sonnet bilden eine kompakte Gruppe mit festen 24 px Abstand zwischen ihren reservierten Spaltenbreiten. Zwischen den Gruppen sind mindestens 32 px Platz; nur diese äußeren Abstände wachsen mit der Chatbreite. Kontext bleibt rechts als eigener Abschluss ohne weitere Linie. Platzbedarf und Zeichnung verwenden dieselben Gruppenregeln.
 
 - **Was mitwächst:** die Abstände, und die Größe in einer Stufe. Mit `auto` (Standard) gilt Größe **2**, wenn HUD und alle Spalten hineinpassen, sonst **1,5**. Die Pixel-Art wird nie stufenlos skaliert: Krumme Faktoren machen Sprites unscharf, und die Höhe des Bands soll ruhig bleiben (42 px bei 1,5, 56 px bei 2).
 - **Was bei Enge wegfällt,** in dieser Reihenfolge: das Wochen-Reset (der Fable-Reset gilt meist auch für die Woche), die Sonnet-Spalte, das Fable-Reset, die Wochen-Spalte, die Tokens, die Fable-Spalte. Danach folgen das Sitzungs-Reset und die Kontext-Spalte (den Kontext zeigt das XP-Level weiter an), zuletzt die Sitzung.
