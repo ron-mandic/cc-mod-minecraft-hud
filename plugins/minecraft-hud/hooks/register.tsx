@@ -60,14 +60,14 @@ async function loadPrefs($: EngineInterface): Promise<HudPrefs> {
   const repo = (await $.session.repo())?.root ?? (await $.session.root())
   const stored = storedPrefsOf(await $.store.get('prefs'))
   const perRepo = reposOf(await $.store.get('repos'))[repo]
-  const option = String(options.desktop_scale ?? 'auto')
+  const option = String(options.desktop_scale ?? '1.5')
   const scale = option === 'auto' ? 'auto' : Number(option.replace(',', '.'))
   return {
     isEnabled: perRepo?.isEnabled ?? stored.isEnabled ?? true,
     isRepoSetting: perRepo !== undefined,
     repo,
     terminal: pickOne(stored.terminal ?? options.terminal_style, TERMINAL_STYLES, 'compact'),
-    scale: pickOne(stored.scale ?? scale, SCALES, 'auto'),
+    scale: pickOne(stored.scale ?? scale, SCALES, 1.5),
     numbers: pickOne(stored.numbers ?? options.numbers, NUMBER_MODES, 'full'),
     hasWarnings: stored.hasWarnings ?? options.warnings !== false,
     refreshMinutes: Math.min(60, Math.max(2, Number(options.refresh_minutes ?? 5) || 5)),

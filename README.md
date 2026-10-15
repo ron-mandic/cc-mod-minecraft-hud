@@ -58,7 +58,7 @@ Im Desktop-Band entfallen Füllwörter: Uhrzeiten ohne „Reset“, Token-Verhä
 
 Das Band ist ein einziges SVG mit selbst berechnetem `space-between`: **HUD · Sitzung | Wochenblock · Kontext**. Woche, Fable und Sonnet bilden eine kompakte Gruppe mit festen 24 px Abstand zwischen ihren reservierten Spaltenbreiten. Zwischen den Gruppen sind mindestens 32 px Platz; nur diese äußeren Abstände wachsen mit der Chatbreite. Kontext bleibt rechts als eigener Abschluss ohne weitere Linie. Platzbedarf und Zeichnung verwenden dieselben Gruppenregeln.
 
-- **Was mitwächst:** die Abstände, und die Größe in einer Stufe. Mit `auto` (Standard) gilt Größe **2**, wenn HUD und alle Spalten hineinpassen, sonst **1,5**. Die Pixel-Art wird nie stufenlos skaliert: Krumme Faktoren machen Sprites unscharf, und die Höhe des Bands soll ruhig bleiben (42 px bei 1,5, 56 px bei 2).
+- **Standard:** feste Größe **1,5**, auch in neuen Repos und Chats (42 px Bandhöhe). Zusätzliche Breite wächst in die Abstände, nicht in die Icons. Optional wählt `auto` Größe **2**, wenn HUD und alle Spalten hineinpassen, sonst **1,5**. Die Pixel-Art wird nie stufenlos skaliert.
 - **Was bei Enge wegfällt,** in dieser Reihenfolge: das Wochen-Reset (der Fable-Reset gilt meist auch für die Woche), die Sonnet-Spalte, das Fable-Reset, die Wochen-Spalte, die Tokens, die Fable-Spalte. Danach folgen das Sitzungs-Reset und die Kontext-Spalte (den Kontext zeigt das XP-Level weiter an), zuletzt die Sitzung.
 - **Die Spalten springen nicht:** Jede Spalte reserviert die Breite ihrer längsten Form (`100 %`, `Mi 00:00`, beim Kontext `000K / 1M` bzw. `000K / 200K`). Die kürzeren Texte sparen auch tatsächlich reservierten Platz.
 
@@ -139,7 +139,7 @@ Der Vorrang ist `local` > `project` > `user`: Ein `false` im Repo schlägt ein `
 | Befehl | Was |
 | :- | :- |
 | `/hud` | Alle Werte mit Bedeutung, Reset-Zeiten, Quelle und aktuellen Einstellungen |
-| `/hud größe auto` · `1` · `1.5` · `2` · `3` | Größe in der Desktop-App. `auto` (Standard) ist 2, wenn alles in die Breite passt, sonst 1,5. Feste Werte gelten immer, `1` ist am kleinsten (HUD 182 × 28 px). |
+| `/hud größe auto` · `1` · `1.5` · `2` · `3` | Größe in der Desktop-App. Standard: fest 1,5. Optional wählt `auto` 2, wenn alles in die Breite passt, sonst 1,5. Feste Werte gelten immer, `1` ist am kleinsten (HUD 182 × 28 px). |
 | `/hud zahlen voll` · `kurz` · `aus` | Die Spalten neben dem HUD: mit Reset-Uhrzeit und Tokens (Standard), nur die Prozente, oder keine |
 | `/hud warnungen an` · `aus` | Hinweise ab 90 % |
 | `/hud refresh` | Usage-Endpoint sofort abfragen |
@@ -154,7 +154,7 @@ Dieselben Einstellungen gibt es als Optionen der Mod: im Terminal unter `/config
   "pluginConfigs": {
     "minecraft-hud@ron-mandic": {
       "options": {
-        "desktop_scale": "auto",
+        "desktop_scale": "1.5",
         "terminal_style": "compact",
         "numbers": "full",
         "warnings": true,

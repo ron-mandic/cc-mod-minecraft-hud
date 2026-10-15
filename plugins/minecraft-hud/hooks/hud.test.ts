@@ -396,6 +396,7 @@ test('the band draws on every surface the session can show', { timeoutMs: 10_000
   const svg = await desktop.find({ type: 'Svg' })
   expect(String(svg?.props.source)).toContain('<svg')
   expect(svg?.props.isInteractive).toBeUndefined()
+  expect(svg?.props.height).toBe(42) // compact 1.5 is the default in new sessions
   // one image for the whole band: the HUD and its columns; at 100 cells the other model's column is given up
   const images = await desktop.findAll({ type: 'Svg' })
   expect(images).toHaveLength(1)

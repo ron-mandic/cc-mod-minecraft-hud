@@ -12,7 +12,7 @@
       "title": "Größe in der Desktop-App",
       "description": "CSS-Pixel je Sprite-Pixel. auto: 2, wenn HUD und alle Spalten mit Details in die Breite passen, sonst 1,5 · oder fest 1, 1.5, 2, 3",
       "options": ["auto", "1", "1.5", "2", "3"],
-      "default": "auto"
+      "default": "1.5"
     },
     "terminal_style": {
       "type": "string",
