@@ -8,7 +8,8 @@ Eine Mod, die deine Nutzung als originalgetreues Minecraft-HUD (Java Edition) ü
 
 - **Installiert** ist die Mod user-weit, also in jedem Repo: `minecraft-hud@ron-mandic`, aus `~/Git Projects/cc-mod-minecraft-hud`. Neue Sitzungen laden sie von selbst, eine offene Sitzung mit `/reload-plugins`.
 - **Geändert?** Version in `plugin.json` erhöhen, `claude plugin update minecraft-hud@ron-mandic`, neu starten.
-- **`/hud`** zeigt alle Werte und Einstellungen.
+- **`/hud`** zeigt einen kurzen Status ohne Icons (normalerweise vier Zeilen).
+- **`/hud details`** zeigt ausführliche Erklärungen und Einstellungen, ebenfalls ohne Icons; `/hud hilfe` zeigt die Befehle.
 - **`/hud aus`** oder **`/hud an`** schaltet nur für das aktuelle Repo.
 - **`/hud terminal aus`** blendet sie nur in der CLI aus.
 - **`/hud größe auto|1|1.5|2|3`** und **`/hud zahlen voll|kurz|aus`** ändern Größe und Spalten.
@@ -48,11 +49,11 @@ Rechts neben dem HUD steht pro Wert eine Spalte in der **Minecraft-Schrift**, mi
 | **Woche** | 7-Tage-Limit, genutzt | `Mi 00:00` |
 | **Fable** | Fable-Wochenlimit, genutzt | `Mi 00:00` |
 | **Sonnet** | nur bei aktuellen Budgetdaten mit Nutzung über 0 % | Wochentag und Uhrzeit |
-| **Kontext** | Kontextfenster, belegt; vor der ersten Messung `?` | `98K / 200K` (Tokens), ab einer Million `785K / 1M`; im neuen Chat zunächst `? / 1M`, sofern die Fenstergröße bekannt ist |
+| **Kontext** | Kontextfenster, belegt; im neuen Chat zunächst `0 %` | `98K / 200K` (Tokens), ab einer Million `785K / 1M`; vor der ersten Messung `0 / 1M`, sofern die Fenstergröße bekannt ist, sonst `0 Tokens` |
 
 Eine einzige feine senkrechte Linie (Label-Grau, 30 % Deckkraft) trennt **Sitzung** vom **Wochenblock** (Woche, Fable und ggf. Sonnet). Sie sitzt mittig zwischen dem sichtbaren Textende der Sitzung und dem ersten Wochenwert. Fehlt „Woche“, bleibt sie vor Fable bzw. Sonnet; fehlt die Sitzung oder der gesamte Wochenblock, entfällt sie. Zwischen Sitzung und Kontext allein steht also keine Linie. Nur in der Desktop-App, das Terminal bleibt unverändert.
 
-Im Desktop-Band entfallen Füllwörter: Uhrzeiten ohne „Reset“, Token-Verhältnis mit `/`. CLI und `/hud` erklären Reset-Zeiten weiterhin ausdrücklich; `/hud` zeigt Token-Zahlen ungekürzt. Labels und Details sind dunkelgrau, Werte hellgrau, beide ruhiger als die Sprites. Das Band ist ein **transparentes Bild** auf hellem und dunklem Theme. Ab 90 % zeigt die Mod einen einmaligen Hinweis pro Limit-Fenster, etwa „Dein Hunger-Balken ist fast leer …“.
+Im Desktop-Band entfallen Füllwörter: Uhrzeiten ohne „Reset“, Token-Verhältnis mit `/`. CLI und `/hud` nennen Reset-Zeiten weiterhin ausdrücklich; `/hud details` zeigt Token-Zahlen ungekürzt. Das normale `/hud` verzichtet auf Icons, Befehlsliste, Einstellungsblock und reguläre Quellenangabe; Datenprobleme werden weiterhin kurz gemeldet. Labels und Details sind dunkelgrau, Werte hellgrau, beide ruhiger als die Sprites. Das Band ist ein **transparentes Bild** auf hellem und dunklem Theme. Ab 90 % zeigt die Mod einen einmaligen Hinweis pro Limit-Fenster, etwa „Dein Hunger-Balken ist fast leer …“.
 
 ## Breite und Größe
 
@@ -138,7 +139,8 @@ Der Vorrang ist `local` > `project` > `user`: Ein `false` im Repo schlägt ein `
 
 | Befehl | Was |
 | :- | :- |
-| `/hud` | Alle Werte mit Bedeutung, Reset-Zeiten, Quelle und aktuellen Einstellungen |
+| `/hud` | Kurzer Status ohne Icons: Herzen/Woche, Rüstung/Fable, Hunger/5 Std. und Kontext; Sonnet nur bei gemeldeter Nutzung |
+| `/hud details` | Ausführliche Bedeutung, volle Token-Zahlen, Quelle und Einstellungen; ebenfalls ohne Icons |
 | `/hud größe auto` · `1` · `1.5` · `2` · `3` | Größe in der Desktop-App. Standard: fest 1,5. Optional wählt `auto` 2, wenn alles in die Breite passt, sonst 1,5. Feste Werte gelten immer, `1` ist am kleinsten (HUD 182 × 28 px). |
 | `/hud zahlen voll` · `kurz` · `aus` | Die Spalten neben dem HUD: mit Reset-Uhrzeit und Tokens (Standard), nur die Prozente, oder keine |
 | `/hud warnungen an` · `aus` | Hinweise ab 90 % |

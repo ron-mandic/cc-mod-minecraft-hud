@@ -75,7 +75,7 @@ for (const width of [1200, 796, 700, 560]) html += bandHtml(width, MILLION, `${w
 html += bandHtml(770, UNKNOWN, '770 px · Budgets unbekannt') +
   bandHtml(770, PARTIAL, '770 px · nur Woche unbekannt') +
   bandHtml(770, UNKNOWN, '770 px · unbekannt, hell', '#f4f3ef')
-html += bandHtml(770, NEW_CHAT, '770 px · neuer Chat, Kontext noch unbekannt')
+html += bandHtml(770, NEW_CHAT, '770 px · neuer Chat, Kontext startet bei 0')
 html += '<p>Terminal, 140 / 100 / 80 / 60 / 40 Spalten</p><pre>' + [140, 100, 80, 60, 40].map(terminalHtml).join('') + '</pre>'
 // beside the README, outside the plugin folder, so an install does not copy it along
 const PREVIEW = join(ROOT, '..', '..', 'docs', 'preview.html')
