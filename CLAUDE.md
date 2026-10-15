@@ -78,13 +78,13 @@ Icons show what is left, rounded up like health. Text columns show what is used.
 ## Rendering, and what was learned the hard way
 
 - **Desktop band.** **One** sized `Svg`: HUD, session, weekly block (week/Fable/Sonnet), context. `layoutBand` computes space-between from `bodyColumns × CELL_PX`: `groupOf`/`minimumGaps` keep weekly columns at 24 CSS px and spread only group boundaries (minimum 32 px). `bandWidth` uses the same gap policy as drawing. The surface scales down if the room estimate is too wide.
-- **Pixel geometry.** Columns have 3 text lines on the HUD rows (y 0/10/20), height 28. Columns reserve their widest form, so the band does not shift; the context reserves `000k von <window>` (`1M` from a million on).
+- **Pixel geometry.** Columns have 3 text lines on the HUD rows (y 0/10/20), height 28. Columns reserve their widest form (`Mi 00:00`, no Reset prefix), so the band does not shift; context reserves `000K / <window>` (`1M` from a million on).
 - **Divider.** Exactly one 1-px rule (`DIVIDER_*`, label grey at 0.3) between session and the first surviving weekly column, centred after session ink (`inkWidth`). No rule if either group is absent, never between session and context alone. Desktop only; terminal layout is independent and unchanged.
 - **Scale.** `auto`: 2 if everything fits, tolerating only the `LARGE_ENOUGH` first give-ups; else 1.5. The art is never scaled by a non-step factor.
 - **Plain `Svg` only.** `isInteractive` puts the SVG in a frame with an opaque white background, so there are no tooltips. Plain images are transparent on both themes.
 - **Keep the band to one sized `Svg`, and always pass it `width` and `height`.** 0.2.1 and 0.2.2 drew a row of several `Svg`s (first unsized, in `width="100%"`/`flexWrap` boxes, then sized in a plain row), and the desktop showed no band at all, while the test kit passed. A single sized image is what the desktop drew.
 - **When the band is missing,** run `/hud debug`. Its `Band:` lines say whether the hook drew, what, and any error. Refusals of an installed mod go only to the engine's debug log.
-- **Text** is drawn in the Minecraft bitmap font with the game's shadow (colour >> 2, offset 1,1). ron-mandic wants plain words, no icon strings: `Reset 16:30`, `Reset Mi 00:00`, `98k von 200k`. The hooks environment has the local timezone (Europe/Berlin).
+- **Text** is drawn in the Minecraft bitmap font with the game's shadow (colour >> 2, offset 1,1). Desktop details are terse: `16:30`, `Mi 00:00`, `785K / 1M`. `resetClock` supplies bare clocks; `resetText` adds `Reset` for the terminal and detailed `/hud` explanation. `/hud` retains full token figures. The hooks environment has the local timezone (Europe/Berlin).
 - **`CELL_PX = 7.8`** turns `bodyColumns` into CSS px. It is an estimate: `/hud debug` shows the real cell count; adjust if columns drop too early or wrap.
 - **Validator rule.** Every function that receives `$` must be a top-level function in `register.tsx`, because the validator traces `$`. Helpers in other files stay pure.
 - **Engine rules.** No `$.state.set` while rendering. Promises nobody awaits go through `background()`.

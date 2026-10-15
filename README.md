@@ -44,15 +44,15 @@ Rechts neben dem HUD steht pro Wert eine Spalte in der **Minecraft-Schrift**, mi
 
 | Spalte | Wert | Detail |
 | :- | :- | :- |
-| **Sitzung** | 5-Stunden-Limit, genutzt | `Reset 16:30`, die lokale Uhrzeit des Resets |
-| **Woche** | 7-Tage-Limit, genutzt | `Reset Mi 00:00` |
-| **Fable** | Fable-Wochenlimit, genutzt | `Reset Mi 00:00` |
-| **Sonnet** | nur, wenn du Sonnet nutzt | `Reset …` |
-| **Kontext** | Kontextfenster, belegt | `98k von 200k` (Tokens), ab einer Million `684k von 1M` |
+| **Sitzung** | 5-Stunden-Limit, genutzt | `16:30`, die lokale Uhrzeit des Resets |
+| **Woche** | 7-Tage-Limit, genutzt | `Mi 00:00` |
+| **Fable** | Fable-Wochenlimit, genutzt | `Mi 00:00` |
+| **Sonnet** | nur, wenn du Sonnet nutzt | Wochentag und Uhrzeit |
+| **Kontext** | Kontextfenster, belegt | `98K / 200K` (Tokens), ab einer Million `785K / 1M` |
 
 Eine einzige feine senkrechte Linie (Label-Grau, 30 % Deckkraft) trennt **Sitzung** vom **Wochenblock** (Woche, Fable und ggf. Sonnet). Sie sitzt mittig zwischen dem sichtbaren Textende der Sitzung und dem ersten Wochenwert. Fehlt „Woche“, bleibt sie vor Fable bzw. Sonnet; fehlt die Sitzung oder der gesamte Wochenblock, entfällt sie. Zwischen Sitzung und Kontext allein steht also keine Linie. Nur in der Desktop-App, das Terminal bleibt unverändert.
 
-Es gibt keine Symbole, alles steht in Worten und Uhrzeiten. Labels und Details sind dunkelgrau, Werte hellgrau, beide ruhiger als die Sprites. Jedes Teil ist ein **transparentes Bild** und sieht in hellem und dunklem Theme gleich aus. Ab 90 % zeigt die Mod einen einmaligen Hinweis pro Limit-Fenster, etwa „Dein Hunger-Balken ist fast leer …“.
+Im Desktop-Band entfallen Füllwörter: Uhrzeiten ohne „Reset“, Token-Verhältnis mit `/`. CLI und `/hud` erklären Reset-Zeiten weiterhin ausdrücklich; `/hud` zeigt Token-Zahlen ungekürzt. Labels und Details sind dunkelgrau, Werte hellgrau, beide ruhiger als die Sprites. Das Band ist ein **transparentes Bild** auf hellem und dunklem Theme. Ab 90 % zeigt die Mod einen einmaligen Hinweis pro Limit-Fenster, etwa „Dein Hunger-Balken ist fast leer …“.
 
 ## Breite und Größe
 
@@ -60,16 +60,9 @@ Das Band ist ein einziges SVG mit selbst berechnetem `space-between`: **HUD · S
 
 - **Was mitwächst:** die Abstände, und die Größe in einer Stufe. Mit `auto` (Standard) gilt Größe **2**, wenn HUD und alle Spalten hineinpassen, sonst **1,5**. Die Pixel-Art wird nie stufenlos skaliert: Krumme Faktoren machen Sprites unscharf, und die Höhe des Bands soll ruhig bleiben (42 px bei 1,5, 56 px bei 2).
 - **Was bei Enge wegfällt,** in dieser Reihenfolge: das Wochen-Reset (der Fable-Reset gilt meist auch für die Woche), die Sonnet-Spalte, das Fable-Reset, die Wochen-Spalte, die Tokens, die Fable-Spalte. Danach folgen das Sitzungs-Reset und die Kontext-Spalte (den Kontext zeigt das XP-Level weiter an), zuletzt die Sitzung.
-- **Die Spalten springen nicht:** Jede Spalte reserviert die Breite ihrer längsten Form (`100 %`, `Reset Mi 00:00`, beim Kontext `000k von 1M` bzw. `000k von 200k`).
+- **Die Spalten springen nicht:** Jede Spalte reserviert die Breite ihrer längsten Form (`100 %`, `Mi 00:00`, beim Kontext `000K / 1M` bzw. `000K / 200K`). Die kürzeren Texte sparen auch tatsächlich reservierten Platz.
 
-| Chatbreite | Größe | Spalten |
-| :- | :- | :- |
-| ab ca. 1200 px | 2 | alle, mit allen Details |
-| ca. 1000 px | 2 | alle, ohne Wochen-Reset |
-| ca. 900 px | 1,5 | alle, mit allen Details |
-| ca. 770 px | 1,5 | alle, ohne Wochen-Reset |
-| ca. 560 px | 1,5 | Sitzung und Kontext |
-| ca. 440 px | 1,5 | Sitzung |
+Die Umschaltpunkte hängen von den vorhandenen Werten ab (z. B. Sonnet-Spalte und Fenstergröße). Die lokale Vorschau zeigt mehrere Breiten mit 200K- und 1M-Kontext; die kürzeren Uhrzeiten und Token-Verhältnisse lassen Details länger sichtbar bleiben.
 
 Die Breite des Bands kennt die Mod in Zellen der Code-Schrift (`bodyColumns`). `CELL_PX` oben in `hooks/desktop.ts` rechnet sie in Pixel um (7,8 px je Zelle). `/hud debug` zeigt, wie viele Zellen dein Band hat.
 
