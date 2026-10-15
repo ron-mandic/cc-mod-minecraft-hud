@@ -3,7 +3,7 @@
   "owner": {
     "name": "ron-mandic"
   },
-  "description": "ron-mandic private Claude-Code-Mods. Nur lokal installieren, nicht veröffentlichen: minecraft-hud nutzt Mojangs Original-Assets.",
+  "description": "Claude-Code-Mods von ron-mandic. Quellcode ohne Mojang-Assets; Assets lokal beziehen und aus einem lokalen Marketplace installieren.",
   "plugins": [
     {
       "name": "minecraft-hud",

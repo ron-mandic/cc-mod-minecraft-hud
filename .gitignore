@@ -15,3 +15,16 @@ docs/preview.html
 plugins/*/.claude-plugin/types/
 plugins/*/tsconfig.json
 .DS_Store
+
+# Local credentials, private keys and diagnostic logs must not be published.
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*.log
