@@ -6,7 +6,7 @@ export type HudLimit = {
   resetsAt?: string
 }
 
-/** A model-scoped weekly limit (Sonnet, Opus, ...), named by the model. */
+/** A model-scoped weekly limit, named by the model. */
 export type HudModelLimit = HudLimit & { model: string }
 
 /** The context window as the status line has it. */
@@ -27,7 +27,7 @@ export type HudSnapshot = {
   week?: HudLimit
   /** Fable's weekly limit: the armour bar. */
   fable?: HudLimit
-  /** Another model-scoped weekly limit in use, Sonnet first: the air bubbles. */
+  /** Sonnet's weekly limit, only while usage is above zero: the air bubbles. */
   air?: HudModelLimit
   /** The context window: the XP bar and its level. */
   context?: HudContext

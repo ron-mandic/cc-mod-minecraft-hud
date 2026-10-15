@@ -52,6 +52,14 @@ const clampPercent = (value: number) => Math.min(100, Math.max(0, Math.round(val
 const limitOf = (used: number | undefined, resetsAt: unknown): HudLimit | undefined =>
   used === undefined ? undefined : { used: clampPercent(used), resetsAt: textOf(resetsAt) }
 
+/** Family matching, never a pinned model version. Preserve names outside known families. */
+const modelKey = (name: string) =>
+  /fable/i.test(name) ? 'Fable' : /sonnet/i.test(name) ? 'Sonnet' : /opus/i.test(name) ? 'Opus' : name
+
+/** Also normalize caches saved by earlier plugin versions before merging sources by recency. */
+const familyModels = (models: Record<string, HudLimit>) =>
+  Object.fromEntries(Object.entries(models).map(([name, limit]) => [modelKey(name), limit]))
+
 /** Legacy top-level keys of model-scoped weekly windows, by the model they count. */
 const LEGACY_MODEL_KEYS: Record<string, string> = {
   seven_day_fable: 'Fable',
@@ -80,7 +88,7 @@ export function parsePlan(body: unknown): PlanReading {
     const scope = isObject(entry.scope) ? entry.scope : undefined
     const model = isObject(scope?.model) ? (textOf(scope.model.display_name) ?? textOf(scope.model.id)) : undefined
     if (model !== undefined) {
-      reading.models[model] ??= limit
+      reading.models[modelKey(model)] ??= limit
     } else if (kind === 'session' || kind === 'five_hour') {
       reading.session ??= limit
     } else if (kind === 'weekly_all' || kind === 'seven_day' || kind === 'weekly') {
@@ -96,7 +104,7 @@ export function parsePlan(body: unknown): PlanReading {
   for (const [key, model] of Object.entries(LEGACY_MODEL_KEYS)) {
     const limit = legacy(key)
     if (limit !== undefined) {
-      reading.models[model] ??= limit
+      reading.models[modelKey(model)] ??= limit
     }
   }
   return reading
@@ -195,18 +203,17 @@ export function merge(plan: PlanCache | undefined, live: LiveReading, previous: 
   const pick = (fromLive: HudLimit | undefined, fromPlan: HudLimit | undefined) =>
     expire(isLiveNewer ? (fromLive ?? fromPlan) : (fromPlan ?? fromLive), now)
   const models: Record<string, HudLimit> = isLiveNewer
-    ? { ...reading?.models, ...live.models }
-    : { ...live.models, ...reading?.models }
+    ? { ...familyModels(reading?.models ?? {}), ...familyModels(live.models) }
+    : { ...familyModels(live.models), ...familyModels(reading?.models ?? {}) }
   const fableName = Object.keys(models).find(name => /fable/i.test(name))
   const airName = Object.keys(models)
-    .filter(name => name !== fableName && (expire(models[name], now)?.used ?? 0) > 0)
-    .sort((a, b) => Number(/sonnet/i.test(b)) - Number(/sonnet/i.test(a)) || (models[b]?.used ?? 0) - (models[a]?.used ?? 0))[0]
+    .find(name => /sonnet/i.test(name) && (expire(models[name], now)?.used ?? 0) > 0)
   const air = airName === undefined ? undefined : expire(models[airName], now)
   const snapshot: HudSnapshot = {
     session: pick(live.session, reading?.session),
     week: pick(live.week, reading?.week),
     fable: fableName === undefined ? undefined : expire(models[fableName], now),
-    air: air === undefined || airName === undefined ? undefined : { ...air, model: airName },
+    air: air === undefined ? undefined : { ...air, model: 'Sonnet' },
     context: live.context,
     source: reading !== undefined ? 'endpoint' : hasLive ? 'session' : 'none',
     readAt: Math.max(planAt, liveAt) || undefined,

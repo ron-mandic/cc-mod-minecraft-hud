@@ -32,6 +32,35 @@ describe('usage', () => {
     expect(reading.models.Sonnet).toEqual({ used: 7, resetsAt: IN_3D })
   })
 
+  test('recognizes versioned Fable and Sonnet families without pinning a release', () => {
+    for (const name of ['Fable', 'Claude Fable 6', 'claude-fable-6-1']) {
+      const reading = parsePlan({ limits: [{ percent: 12, scope: { model: { display_name: name } } }] })
+      expect(merge({ at: NOW, reading }, { at: 0, models: {} }, null, NOW).fable?.used).toBe(12)
+    }
+    const reading = parsePlan({ limits: [{ percent: 25, scope: { model: { id: 'claude-sonnet-6-1' } } }] })
+    expect(merge({ at: NOW, reading }, { at: 0, models: {} }, null, NOW).air).toEqual({ used: 25, resetsAt: undefined, model: 'Sonnet' })
+    // Old versioned cache keys and fresh header family names must merge by recency, not coexist.
+    const updated = merge(
+      { at: NOW - 1000, reading: { models: { 'Claude Fable 6': { used: 12 } } } },
+      { at: NOW, models: { Fable: { used: 15 } } }, null, NOW,
+    )
+    expect(updated.fable?.used).toBe(15)
+  })
+
+  test('bubbles never fall back to Opus or an unknown family', () => {
+    const modelSets: Record<string, { used: number; resetsAt?: string }>[] = [
+      { Opus: { used: 42 } },
+      { Opus: { used: 42 }, Sonnet: { used: 0 } },
+      { Other: { used: 50 } },
+      { Sonnet: { used: 12, resetsAt: new Date(NOW - 1).toISOString() } },
+    ]
+    for (const models of modelSets) {
+      expect(merge({ at: NOW, reading: { models } }, { at: 0, models: {} }, null, NOW).air).toBeUndefined()
+    }
+    const reading = { models: { Opus: { used: 99 }, Sonnet: { used: 100 } } }
+    expect(merge({ at: NOW, reading }, { at: 0, models: {} }, null, NOW).air?.used).toBe(100)
+  })
+
   test('falls back to the older top-level windows', () => {
     const reading = parsePlan({ five_hour: { utilization: 12.5, resets_at: IN_2H }, seven_day_overage_included: { utilization: 8.2 } })
     expect(reading.session?.used).toBe(12.5)
