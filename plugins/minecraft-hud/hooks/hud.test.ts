@@ -150,17 +150,58 @@ describe('drawing', () => {
     expect(fixed.columns).toHaveLength(0)
   })
 
-  test('a faint rule between each two columns, in the free room between them', () => {
+  test('one rule separates session from weekly budgets, never context', () => {
     const prefs = { scale: 'auto', numbers: 'full' } as const
-    const band = layoutBand(snapshot, prefs, { now: NOW, random, bodyColumns: 100 })
-    const rules = [...band.drawing.svg.matchAll(/<rect x="(\d+)" y="1" width="1"/g)].map(match => Number(match[1]))
-    expect(rules).toHaveLength(band.columns.length - 1)
-    expect(band.drawing.svg).toContain('opacity="0.3"')
-    // each rule right of the HUD and left of the band's end, in order
-    expect(rules[0]).toBeGreaterThan(HUD_WIDTH)
-    expect([...rules].sort((a, b) => a - b)).toEqual(rules)
+    for (const reading of [
+      snapshot,
+      { ...snapshot, week: undefined },
+      { ...snapshot, week: undefined, fable: undefined }, // Sonnet alone is still weekly
+    ]) {
+      const band = layoutBand(reading, prefs, { now: NOW, random, bodyColumns: 200 })
+      const rules = [...band.drawing.svg.matchAll(/<rect x="(\d+)" y="1" width="1"/g)].map(match => Number(match[1]))
+      expect(rules).toHaveLength(1)
+      expect(band.drawing.svg).toContain('opacity="0.3"')
+      expect(rules[0]).toBeGreaterThan(band.columnStarts[0]!)
+      expect(rules[0]).toBeLessThan(band.columnStarts[1]!)
+    }
+    for (const reading of [
+      { ...snapshot, session: undefined },
+      { ...snapshot, week: undefined, fable: undefined, air: undefined },
+    ]) {
+      const band = layoutBand(reading, prefs, { now: NOW, random, bodyColumns: 200 })
+      expect(band.drawing.svg).not.toContain('id="dv"')
+    }
     const off = layoutBand(snapshot, { scale: 2, numbers: 'off' }, { now: NOW, random, bodyColumns: 100 })
     expect(off.drawing.svg).not.toContain('id="dv"')
+  })
+  test('weekly gaps stay compact at wide widths; group gaps grow instead', () => {
+    for (const bodyColumns of [200, 260]) {
+      const band = layoutBand(snapshot, { scale: 2, numbers: 'full' }, { now: NOW, random, bodyColumns })
+      const gapAfter = (i: number) =>
+        (band.columnStarts[i + 1]! - band.columnStarts[i]! - columnWidth(band.columns[i]!)) * band.scale
+      expect(gapAfter(1)).toBe(12) // week -> Fable
+      expect(gapAfter(2)).toBe(12) // Fable -> Sonnet
+      expect(gapAfter(0)).toBeGreaterThan(gapAfter(1)) // session -> weekly
+      expect(gapAfter(3)).toBeGreaterThan(gapAfter(2)) // weekly -> context
+    }
+  })
+
+  test('responsive groups never overlap or leave an orphan divider', () => {
+    for (const numbers of ['full', 'short', 'off'] as const) {
+      for (let bodyColumns = 30; bodyColumns <= 220; bodyColumns += 1) {
+        const band = layoutBand(snapshot, { scale: 'auto', numbers }, { now: NOW, random, bodyColumns })
+        expect(band.drawing.width).toBeLessThanOrEqual(bodyColumns * 7.8 + 0.01)
+        let end = HUD_WIDTH
+        band.columns.forEach((column, i) => {
+          expect(band.columnStarts[i]!).toBeGreaterThan(end)
+          end = band.columnStarts[i]! + columnWidth(column)
+        })
+        expect(end * band.scale).toBeLessThanOrEqual(band.drawing.width + band.scale / 2 + 0.01)
+        const hasSession = band.columns.some(column => column.key === 'session')
+        const hasWeekly = band.columns.some(column => ['week', 'fable', 'air'].includes(column.key))
+        expect(band.drawing.svg.includes('id="dv"')).toBe(hasSession && hasWeekly)
+      }
+    }
   })
 
   test('low health jiggles and an empty session starves', () => {

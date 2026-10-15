@@ -27,13 +27,15 @@ const COLUMN_LINES = [TOP_ROW, MIDDLE_ROW, XP_BAR_Y] as const
 /** Label and detail a darker grey, the figure a lighter one: all quieter than the sprites. */
 const LABEL_COLOR = 0x808080
 const VALUE_COLOR = 0xc0c0c0
-/** The faint rule between two columns: label grey, mostly see-through, one sprite pixel wide. */
+/** The session-to-weekly rule: label grey, mostly see-through, one sprite pixel wide. */
 const DIVIDER_COLOR = LABEL_COLOR
 const DIVIDER_OPACITY = 0.3
 const DIVIDER_TOP = 1
 const DIVIDER_HEIGHT = HUD_HEIGHT - 2
-/** The least room between two pieces of the band, in CSS pixels, however wide it is. */
-const MIN_GAP_PX = 20
+/** Minimum group spacing in CSS pixels; only group boundaries absorb surplus room. */
+const MIN_GAP_PX = 24
+/** Weekly budgets stay together even in a wide band. */
+const WEEK_GAP_PX = 12
 /** A desktop band cell in CSS pixels (its code font's advance), to turn `bodyColumns` into room. */
 const CELL_PX = 7.8
 
@@ -294,24 +296,26 @@ export function columnWidth(column: HudColumn): number {
 const inkWidth = (column: HudColumn) =>
   Math.max(textWidth(column.label), textWidth(column.value), column.detail === '' ? 0 : textWidth(column.detail)) + 1
 
-/**
- * A faint rule between each two columns, centred between where the left one's text ends and the
- * right one starts: a column reserves room for its widest form, and a rule in the middle of the
- * reserved gap would sit off-centre next to a short `Reset 14:20`.
- */
-function dividers(columns: readonly HudColumn[], starts: readonly number[]) {
-  let rules = ''
-  for (let i = 1; i < columns.length; i += 1) {
-    const left = columns[i - 1]
-    const start = starts[i]
-    const leftStart = starts[i - 1]
-    if (left === undefined || start === undefined || leftStart === undefined) {
-      continue
-    }
-    const x = Math.round((leftStart + inkWidth(left) + start) / 2)
-    rules += `<rect x="${x}" y="${DIVIDER_TOP}" width="1" height="${DIVIDER_HEIGHT}"/>`
+const groupOf = (column: HudColumn) =>
+  column.key === 'week' || column.key === 'fable' || column.key === 'air' ? 'weekly' : column.key
+
+/** The first column starts a group after the HUD; adjacent weekly columns share a fixed gap. */
+const startsGroup = (columns: readonly HudColumn[], i: number) =>
+  i === 0 || groupOf(columns[i]!) !== groupOf(columns[i - 1]!)
+
+const minimumGaps = (columns: readonly HudColumn[]) =>
+  columns.map((_, i) => startsGroup(columns, i) ? MIN_GAP_PX : WEEK_GAP_PX)
+
+/** One rule only when both the session and a weekly budget survived fitting. */
+function divider(columns: readonly HudColumn[], starts: readonly number[]) {
+  const session = columns.findIndex(column => column.key === 'session')
+  const weekly = columns.findIndex(column => groupOf(column) === 'weekly')
+  if (session < 0 || weekly !== session + 1) {
+    return ''
   }
-  return rules === '' ? '' : `<g id="dv" fill="${hex(DIVIDER_COLOR)}" opacity="${DIVIDER_OPACITY}">${rules}</g>`
+  const x = Math.round((starts[session]! + inkWidth(columns[session]!) + starts[weekly]!) / 2)
+  return `<g id="dv" fill="${hex(DIVIDER_COLOR)}" opacity="${DIVIDER_OPACITY}">` +
+    `<rect x="${x}" y="${DIVIDER_TOP}" width="1" height="${DIVIDER_HEIGHT}"/></g>`
 }
 
 /** One column at `x`: label, figure and detail on the HUD's three rows, in the game's font with its shadow. */
@@ -326,7 +330,8 @@ function writeColumn(writer: Writer, column: HudColumn, x: number) {
 
 /** The CSS pixels the band needs for the HUD and these columns at `scale`, the least gaps included. */
 export const bandWidth = (columns: readonly HudColumn[], scale: number) =>
-  (HUD_WIDTH + columns.reduce((sum, column) => sum + columnWidth(column), 0)) * scale + MIN_GAP_PX * columns.length
+  (HUD_WIDTH + columns.reduce((sum, column) => sum + columnWidth(column), 0)) * scale +
+  minimumGaps(columns).reduce((sum, gap) => sum + gap, 0)
 
 /**
  * What a narrow band gives up, first to last: the weekly details before the session's reset
@@ -345,7 +350,13 @@ const GIVE_UP: readonly (readonly ['detail' | 'column', string])[] = [
   ['column', 'session'],
 ]
 
-export type BandLayout = { scale: number; drawing: DesktopDrawing; columns: HudColumn[] }
+export type BandLayout = {
+  scale: number
+  drawing: DesktopDrawing
+  columns: HudColumn[]
+  /** Column origins in SVG pixels, useful for geometry checks independently of bitmap glyphs. */
+  columnStarts: number[]
+}
 
 /** How many of GIVE_UP's first steps scale 2 may take and still count as having room for everything. */
 const LARGE_ENOUGH = 2
@@ -387,8 +398,8 @@ function fit(wanted: readonly HudColumn[], scale: number, room: number): { colum
  * image reliably; a row of several drew nothing). With `auto` it takes scale 2 where the HUD and
  * every column fit (giving up at most the details another column repeats), else 1.5 with as much as
  * fits there, details before columns, the session last. Inside the image the HUD sits left and the
- * columns are spread over the rest (space-between), so a wider band grows the gaps, never the
- * pixels: the art stays crisp and the band keeps its height.
+ * session, weekly budgets and context are spread over the rest (space-between). Only group gaps
+ * grow; the weekly block keeps fixed internal gaps. The art stays crisp at the same height.
  */
 export function layoutBand(
   snapshot: HudSnapshot,
@@ -407,16 +418,18 @@ export function layoutBand(
   const columns = laid.columns
   const widths = columns.map(columnWidth)
   const content = HUD_WIDTH + widths.reduce((sum, width) => sum + width, 0)
-  const leastGap = Math.ceil(MIN_GAP_PX / scale)
-  // the image fills the band where its width is known; otherwise the least gaps
-  const viewWidth = Number.isFinite(room) ? Math.max(content + leastGap * columns.length, Math.floor(room / scale)) : content + leastGap * columns.length
-  const gap = columns.length === 0 ? 0 : (viewWidth - content) / columns.length
+  const gaps = minimumGaps(columns).map(gap => gap / scale)
+  const minimumWidth = content + gaps.reduce((sum, gap) => sum + gap, 0)
+  // The image fills known room; unknown room uses minimum gaps. Round once, not per gap.
+  const viewWidth = Number.isFinite(room) ? Math.max(minimumWidth, Math.floor(room / scale)) : minimumWidth
+  const groups = columns.filter((_, i) => startsGroup(columns, i)).length
+  const extra = groups === 0 ? 0 : (viewWidth - minimumWidth) / groups
   const writer = new Writer()
   const sprites = hudSprites(snapshot, { ...args, scale }, writer)
   let x = HUD_WIDTH
   const starts: number[] = []
   columns.forEach((column, i) => {
-    x += gap
+    x += (gaps[i] ?? 0) + (startsGroup(columns, i) ? extra : 0)
     starts.push(Math.round(x))
     writeColumn(writer, column, Math.round(x))
     x += widths[i] ?? 0
@@ -425,8 +438,9 @@ export function layoutBand(
   return {
     scale,
     columns,
+    columnStarts: starts,
     drawing: {
-      svg: svgOf(viewWidth, scale, SPRITE_DEFS + writer.defs(), sprites + dividers(columns, starts) + writer.body()),
+      svg: svgOf(viewWidth, scale, SPRITE_DEFS + writer.defs(), sprites + divider(columns, starts) + writer.body()),
       alt,
       width: Math.round(viewWidth * scale * 100) / 100,
       height: Math.round(HUD_HEIGHT * scale * 100) / 100,
