@@ -35,11 +35,11 @@ const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 const twoDigits = (value: number) => String(value).padStart(2, '0')
 
 /**
- * When a window resets, as a local clock time: `Reset 16:30` today, `Reset Mi 00:00` on another day.
+ * When a window resets, as a local clock time: `16:30` today, `Mi 00:00` on another day.
  * Rounded to the minute (the endpoint says 21:59:59.57 for midnight). Stays put between readings,
  * unlike a countdown, so the drawing changes only when the figures do.
  */
-export function resetText(iso: string | undefined, now: number): string | undefined {
+export function resetClock(iso: string | undefined, now: number): string | undefined {
   const at = iso === undefined ? NaN : Date.parse(iso)
   if (!Number.isFinite(at)) {
     return undefined
@@ -48,7 +48,12 @@ export function resetText(iso: string | undefined, now: number): string | undefi
   const today = new Date(now)
   const isToday = when.getFullYear() === today.getFullYear() && when.getMonth() === today.getMonth() && when.getDate() === today.getDate()
   const clock = `${twoDigits(when.getHours())}:${twoDigits(when.getMinutes())}`
-  return isToday ? `Reset ${clock}` : `Reset ${WEEKDAYS[when.getDay()] ?? ''} ${clock}`
+  return isToday ? clock : `${WEEKDAYS[when.getDay()] ?? ''} ${clock}`
+}
+/** Explicit reset label for terminal text and the detailed `/hud` explanation. */
+export function resetText(iso: string | undefined, now: number): string | undefined {
+  const clock = resetClock(iso, now)
+  return clock === undefined ? undefined : `Reset ${clock}`
 }
 
 const ago = (at: number | undefined, now: number) => {
@@ -104,20 +109,20 @@ export function titlesOf(snapshot: HudSnapshot, now: number): Titles {
 /** One column beside the desktop HUD: a label over its figure over a detail (the reset, the tokens). */
 export type HudColumn = { key: string; label: string; value: string; detail: string }
 
-/** Tokens in short: `684`, `98k`, `684k`, from a million on `1M`, `1,5M` (German comma). */
+/** Tokens in short: `684`, `98K`, `684K`, from a million on `1M`, `1,5M` (German comma). */
 export function shortTokens(value: number): string {
   const thousands = Math.round(value / 1000)
   if (value < 1000) {
     return String(Math.round(value))
   }
   if (thousands < 1000) {
-    return `${thousands}k`
+    return `${thousands}K`
   }
   return `${Math.round(value / 100_000) / 10}`.replace('.', ',') + 'M'
 }
 
 const limitColumn = (key: string, label: string, limit: HudLimit | undefined, now: number): HudColumn[] =>
-  limit === undefined ? [] : [{ key, label, value: `${Math.round(limit.used)} %`, detail: resetText(limit.resetsAt, now) ?? '' }]
+  limit === undefined ? [] : [{ key, label, value: `${Math.round(limit.used)} %`, detail: resetClock(limit.resetsAt, now) ?? '' }]
 
 /**
  * The columns in reading order: the session first (it runs out soonest), then the weekly windows,
@@ -138,7 +143,7 @@ export function columnsOf(snapshot: HudSnapshot, now: number): HudColumn[] {
             key: 'context',
             label: 'Kontext',
             value: `${Math.round(context.percent)} %`,
-            detail: context.tokens === undefined ? '' : `${shortTokens(context.tokens)} von ${shortTokens(context.window)}`,
+            detail: context.tokens === undefined ? '' : `${shortTokens(context.tokens)} / ${shortTokens(context.window)}`,
           },
         ]),
   ]

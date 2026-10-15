@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { HUD_HEIGHT, HUD_WIDTH, bandWidth, columnWidth, drawHud, layoutBand, textWidth } from './desktop'
 import { fold, statusText, terminalBand } from './terminal'
-import { columnsOf, resetText, shortTokens } from './text'
+import { columnsOf, resetClock, resetText, shortTokens, titlesOf } from './text'
 import { halvesLeft, liveOf, merge, parsePlan, planResultOf } from './usage'
 
 const NOW = Date.parse('2026-10-05T10:00:00Z')
@@ -79,13 +79,18 @@ describe('drawing', () => {
   )
   let seed = 1
   const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-  const RESET = /^Reset ((Mo|Di|Mi|Do|Fr|Sa|So) )?\d\d:\d\d$/
+  const RESET = /^((Mo|Di|Mi|Do|Fr|Sa|So) )?\d\d:\d\d$/
 
   test('resets read as local clock times, rounded to the minute', () => {
     expect(resetText(IN_2H, NOW)).toMatch(/^Reset \d\d:\d\d$/)
     expect(resetText(IN_3D, NOW)).toMatch(/^Reset (Mo|Di|Mi|Do|Fr|Sa|So) \d\d:\d\d$/)
     expect(resetText('2026-10-06T21:59:59.570426+00:00', NOW)).toBe(resetText('2026-10-06T22:00:00+00:00', NOW))
     expect(resetText(undefined, NOW)).toBeUndefined()
+    expect(resetClock(IN_2H, NOW)).toMatch(/^\d\d:\d\d$/)
+    expect(resetClock(IN_3D, NOW)).toMatch(/^(Mo|Di|Mi|Do|Fr|Sa|So) \d\d:\d\d$/)
+    expect(resetClock(undefined, NOW)).toBeUndefined()
+    expect(resetClock('invalid', NOW)).toBeUndefined()
+    expect(resetClock('2026-10-06T21:59:59.570426+00:00', NOW)).toBe(resetClock('2026-10-06T22:00:00+00:00', NOW))
   })
 
   test('one column per figure, in reading order, as words', () => {
@@ -93,21 +98,24 @@ describe('drawing', () => {
     expect(columns.map(column => column.label)).toEqual(['Sitzung', 'Woche', 'Fable', 'Sonnet', 'Kontext'])
     expect(columns.map(column => column.value)).toEqual(['41 %', '32 %', '43 %', '7 %', '42 %'])
     expect(columns[0]?.detail).toMatch(RESET)
-    expect(columns[4]?.detail).toBe('84k von 200k')
+    expect(columns[4]?.detail).toBe('84K / 200K')
+    expect(columns.slice(0, 4).every(column => RESET.test(column.detail))).toBe(true)
+    expect(titlesOf(snapshot, NOW).food).toContain('Reset ')
+    expect(titlesOf(snapshot, NOW).xp).toContain('84.000 von 200.000 Tokens')
   })
 
-  test('tokens in short: k up to a million, then M', () => {
+  test('tokens in short: K up to a million, then M', () => {
     expect(shortTokens(684)).toBe('684')
-    expect(shortTokens(684_000)).toBe('684k')
+    expect(shortTokens(684_000)).toBe('684K')
     expect(shortTokens(999_600)).toBe('1M')
     expect(shortTokens(1_000_000)).toBe('1M')
     expect(shortTokens(1_500_000)).toBe('1,5M')
     const million = { ...snapshot, context: { window: 1_000_000, tokens: 684_000, percent: 68.4 } }
     const context = columnsOf(million, NOW).find(column => column.key === 'context')
-    expect(context?.detail).toBe('684k von 1M')
+    expect(context?.detail).toBe('684K / 1M')
     // the column reserves its widest form for this window, not for a 1000k one
     if (context !== undefined) {
-      expect(columnWidth(context)).toBe(columnWidth({ ...context, detail: '999k von 1M' }))
+      expect(columnWidth(context)).toBe(columnWidth({ ...context, detail: '999K / 1M' }))
       expect(columnWidth(context)).toBeLessThan(textWidth('684k von 1000k'))
     }
   })
@@ -126,7 +134,7 @@ describe('drawing', () => {
     const [session] = columnsOf(snapshot, NOW)
     expect(session).toBeDefined()
     if (session === undefined) return
-    const later = { ...session, value: '100 %', detail: 'Reset Mi 00:00' }
+    const later = { ...session, value: '100 %', detail: 'Mi 00:00' }
     expect(columnWidth(later)).toBe(columnWidth(session))
     expect(textWidth('Reset')).toBe(27)
   })
@@ -195,9 +203,9 @@ describe('drawing', () => {
     const band = layoutBand(reading, { scale: 'auto', numbers: 'full' }, { now: NOW, random, bodyColumns: 96 })
     expect(band.scale).toBe(1.5)
     expect(band.columns.map(column => column.key)).toEqual(['session', 'week', 'fable', 'context'])
-    expect(band.columns[1]?.detail).toBe('')
+    expect(band.columns[1]?.detail).toMatch(RESET)
     expect(band.columns[2]?.detail).toMatch(RESET)
-    expect(band.columns[3]?.detail).toBe('785k von 1M')
+    expect(band.columns[3]?.detail).toBe('785K / 1M')
     const gap = (band.columnStarts[2]! - band.columnStarts[1]! - columnWidth(band.columns[1]!)) * band.scale
     expect(gap).toBe(24)
   })
