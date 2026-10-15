@@ -276,9 +276,10 @@ export function drawHud(snapshot: HudSnapshot, args: DrawArgs): DesktopDrawing {
 /**
  * How wide a column is drawn: its widest line, the figure and the detail at the width of their
  * widest form (`100 %`, `Reset Mi 00:00`), so the band does not shift as the figures change.
+ * The context's widest form keeps its window (`000k von 1M`), which does not change in a session.
  */
 export function columnWidth(column: HudColumn): number {
-  const widest = column.key === 'context' ? '000k von 000k' : 'Reset Mi 00:00'
+  const widest = column.key === 'context' ? column.detail.replace(/^\S+/, '000k') : 'Reset Mi 00:00'
   const detail = column.detail === '' ? 0 : Math.max(textWidth(column.detail), textWidth(widest))
   // one more for the shadow
   return Math.max(textWidth(column.label), textWidth(column.value), textWidth('100 %'), detail) + 1

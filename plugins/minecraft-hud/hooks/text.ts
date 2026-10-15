@@ -104,7 +104,17 @@ export function titlesOf(snapshot: HudSnapshot, now: number): Titles {
 /** One column beside the desktop HUD: a label over its figure over a detail (the reset, the tokens). */
 export type HudColumn = { key: string; label: string; value: string; detail: string }
 
-const thousands = (value: number) => (value >= 1000 ? `${Math.round(value / 1000)}k` : String(Math.round(value)))
+/** Tokens in short: `684`, `98k`, `684k`, from a million on `1M`, `1,5M` (German comma). */
+export function shortTokens(value: number): string {
+  const thousands = Math.round(value / 1000)
+  if (value < 1000) {
+    return String(Math.round(value))
+  }
+  if (thousands < 1000) {
+    return `${thousands}k`
+  }
+  return `${Math.round(value / 100_000) / 10}`.replace('.', ',') + 'M'
+}
 
 const limitColumn = (key: string, label: string, limit: HudLimit | undefined, now: number): HudColumn[] =>
   limit === undefined ? [] : [{ key, label, value: `${Math.round(limit.used)} %`, detail: resetText(limit.resetsAt, now) ?? '' }]
@@ -128,7 +138,7 @@ export function columnsOf(snapshot: HudSnapshot, now: number): HudColumn[] {
             key: 'context',
             label: 'Kontext',
             value: `${Math.round(context.percent)} %`,
-            detail: context.tokens === undefined ? '' : `${thousands(context.tokens)} von ${thousands(context.window)}`,
+            detail: context.tokens === undefined ? '' : `${shortTokens(context.tokens)} von ${shortTokens(context.window)}`,
           },
         ]),
   ]

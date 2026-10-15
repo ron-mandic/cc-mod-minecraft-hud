@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { HUD_HEIGHT, HUD_WIDTH, bandWidth, columnWidth, drawHud, layoutBand, textWidth } from './desktop'
 import { fold, statusText, terminalBand } from './terminal'
-import { columnsOf, resetText } from './text'
+import { columnsOf, resetText, shortTokens } from './text'
 import { halvesLeft, liveOf, merge, parsePlan, planResultOf } from './usage'
 
 const NOW = Date.parse('2026-10-05T10:00:00Z')
@@ -94,6 +94,22 @@ describe('drawing', () => {
     expect(columns.map(column => column.value)).toEqual(['41 %', '32 %', '43 %', '7 %', '42 %'])
     expect(columns[0]?.detail).toMatch(RESET)
     expect(columns[4]?.detail).toBe('84k von 200k')
+  })
+
+  test('tokens in short: k up to a million, then M', () => {
+    expect(shortTokens(684)).toBe('684')
+    expect(shortTokens(684_000)).toBe('684k')
+    expect(shortTokens(999_600)).toBe('1M')
+    expect(shortTokens(1_000_000)).toBe('1M')
+    expect(shortTokens(1_500_000)).toBe('1,5M')
+    const million = { ...snapshot, context: { window: 1_000_000, tokens: 684_000, percent: 68.4 } }
+    const context = columnsOf(million, NOW).find(column => column.key === 'context')
+    expect(context?.detail).toBe('684k von 1M')
+    // the column reserves its widest form for this window, not for a 1000k one
+    if (context !== undefined) {
+      expect(columnWidth(context)).toBe(columnWidth({ ...context, detail: '999k von 1M' }))
+      expect(columnWidth(context)).toBeLessThan(textWidth('684k von 1000k'))
+    }
   })
 
   test('the HUD SVG is the vanilla layout, transparent, the level outlined', () => {
