@@ -453,13 +453,19 @@ export function layoutBand(
     x += widths[i] ?? 0
   })
   columns.forEach((column, i) => writeColumn(writer, column, starts[i]!))
+  const body = sprites + divider(columns, starts) + writer.body()
+  // Move sprites and font-rendered XP digits together, on whole sprite pixels.
+  const offset = Math.max(0, Math.round((viewWidth - HUD_WIDTH) / 2))
+  const drawingBody = columns.length === 0
+    ? `<g id="hud-centered" transform="translate(${offset} 0)">${body}</g>`
+    : body
   const alt = [`Minecraft-HUD: ${hudAlt(snapshot)}`, ...columns.map(column => [column.label, column.value, column.detail].filter(part => part !== '').join(' '))].join(' · ')
   return {
     scale,
     columns,
     columnStarts: starts,
     drawing: {
-      svg: svgOf(viewWidth, scale, SPRITE_DEFS + writer.defs(), sprites + divider(columns, starts) + writer.body()),
+      svg: svgOf(viewWidth, scale, SPRITE_DEFS + writer.defs(), drawingBody),
       alt,
       width: Math.round(viewWidth * scale * 100) / 100,
       height: Math.round(HUD_HEIGHT * scale * 100) / 100,

@@ -263,6 +263,30 @@ describe('drawing', () => {
     expect(fixed.columns).toHaveLength(0)
   })
 
+  test('the HUD alone is centered, including when responsive fitting hides every column', () => {
+    for (const scale of [1, 1.5, 2, 3] as const) {
+      for (const bodyColumns of [80, 120, 200]) {
+        const band = layoutBand(snapshot, { scale, numbers: 'off' }, { now: NOW, random, bodyColumns })
+        expect(band.columns).toHaveLength(0)
+        const match = band.drawing.svg.match(/<g id="hud-centered" transform="translate\((\d+) 0\)">/)
+        expect(match).toBeDefined()
+        const left = Number(match?.[1])
+        const viewWidth = band.drawing.width / scale
+        expect(Math.abs(left - (viewWidth - HUD_WIDTH - left))).toBeLessThanOrEqual(1)
+        expect(band.drawing.svg).toContain('href="#lv"')
+        expect(band.drawing.svg).not.toContain('id="dv"')
+      }
+    }
+    const narrow = layoutBand(snapshot, { scale: 1.5, numbers: 'full' }, { now: NOW, random, bodyColumns: 38 })
+    expect(narrow.columns).toHaveLength(0)
+    expect(narrow.drawing.svg).toContain('id="hud-centered"')
+    const normal = layoutBand(snapshot, { scale: 1.5, numbers: 'full' }, { now: NOW, random, bodyColumns: 100 })
+    expect(normal.columns.length).toBeGreaterThan(0)
+    expect(normal.drawing.svg).not.toContain('id="hud-centered"')
+    const unknownWidth = layoutBand(snapshot, { scale: 1.5, numbers: 'off' }, { now: NOW, random, bodyColumns: 0 })
+    expect(unknownWidth.drawing.svg).toContain('transform="translate(0 0)"')
+  })
+
   test('one rule separates session from weekly budgets, never context', () => {
     const prefs = { scale: 'auto', numbers: 'full' } as const
     for (const reading of [

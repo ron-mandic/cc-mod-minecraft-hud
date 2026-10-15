@@ -1,4 +1,4 @@
-// Rasterizes the SVG subset this mod writes (pixel-run paths, rects, <use>, groups, opacity, the XP clip) to
+// Rasterizes the SVG subset this mod writes (pixel-run paths, rects, <use>, translated groups, opacity, the XP clip) to
 // RGBA, and writes PNGs: pixel-exact previews without a browser. Animations are drawn at rest.
 import { deflateSync } from 'node:zlib'
 import { writeFileSync } from 'node:fs'
@@ -78,10 +78,14 @@ export function rasterize(svg: string, scale: number, bg: [number, number, numbe
       }
       default: {
         const a = alpha * Number(n.attrs.opacity ?? 1)
+        const translation = n.attrs.transform?.match(/^translate\((-?\d+) (-?\d+)\)$/)
+        const x = tx + Number(translation?.[1] ?? 0)
+        const y = ty + Number(translation?.[2] ?? 0)
         let c = clipW
         const clip = n.attrs['clip-path']?.match(/#([^)]+)/)?.[1]
-        if (clip) c = Math.min(c, Number(ids.get(clip)?.children[0]?.attrs.width ?? Infinity))
-        for (const child of n.children) draw(child, tx, ty, n.attrs.fill ?? fill, a, c)
+        const rect = clip === undefined ? undefined : ids.get(clip)?.children[0]
+        if (rect) c = Math.min(c, x + Number(rect.attrs.x ?? 0) + Number(rect.attrs.width ?? Infinity))
+        for (const child of n.children) draw(child, x, y, n.attrs.fill ?? fill, a, c)
       }
     }
   }
