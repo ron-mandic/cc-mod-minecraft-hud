@@ -49,7 +49,7 @@ The band above the prompt, as the vanilla Java HUD without the hotbar:
 | hearts | 7-day limit, all models |
 | armour | Fable weekly limit |
 | hunger | 5-hour session limit |
-| air bubbles | another model-scoped weekly limit, Sonnet first, only while used |
+| air bubbles | exclusively Sonnet's weekly limit, only with fresh usage > 0; never fallback to Opus |
 | XP bar + level | context window % |
 
 Icons show what is left, rounded up like health. Text columns show what is used.
@@ -59,7 +59,7 @@ Icons show what is left, rounded up like health. Text columns show what is used.
 | File | Role |
 | :- | :- |
 | `hooks/register.tsx` | All hooks and all `$` use: session start, measure, turn end, `/hud`, `ui.render` AbovePrompt, endpoint fetch, prefs, warnings |
-| `hooks/usage.ts` | Pure. `parsePlan` reads the endpoint JSON (`limits[]`, legacy `five_hour`/`seven_day*`), `liveOf` reads `$.session.usage()`, `merge` takes the newer reading per window and empties windows whose reset passed, `halvesLeft` |
+| `hooks/usage.ts` | Pure. `parsePlan` reads endpoint JSON and normalizes versioned family names, `liveOf` reads `$.session.usage()`, `merge` uses fresh readings and discards reset-expired windows, `halvesLeft` |
 | `hooks/desktop.ts` | Pure. SVG strings: `drawHud` (sprites, SMIL animations), `drawColumn` (Minecraft-font text), `layoutBand` (scale + which columns fit; `GIVE_UP`, `LARGE_ENOUGH`, `CELL_PX`, `MIN_GAP_PX`) |
 | `hooks/terminal.ts` | Pure. `terminalBand` (glyph bars left, words right, by priority), `statusText` |
 | `hooks/text.ts` | Pure. German text: `columnsOf`, `resetText` (local clock), `/hud` card |
@@ -74,6 +74,8 @@ Icons show what is left, rounded up like health. Text columns show what is used.
 - **Fable (and Sonnet)** come from the undocumented `GET https://api.anthropic.com/api/oauth/usage`, header `anthropic-beta: oauth-2025-04-20`. It is called through `$.session.authorize()` and `$.http.fetch`, so the token never reaches the mod. Live answer on 2026-10-05: `five_hour, seven_day, extra_usage, limits[session, weekly_all, weekly_scoped:Fable], spend, member_dashboard_available`. `/hud debug` prints the fields seen.
 - **Fetch cadence.** One shared cache, `$.store` key `plan`, for all sessions. A fetch runs after a main-thread turn once the cache is 2 min old (1 min after a Fable turn), and when idle every `refresh_minutes` (5). Back-off: 429 → 10 min, 401/403 → 30 min.
 - **Prefs.** Plugin options (`userConfig`) are the defaults. `$.store` `prefs` (global, set with `/hud …`) beats them. `$.store` `repos[gitRoot]` (`/hud an|aus`) beats both. Each install has its own store.
+- **Unknown budgets.** Source readings older than 15 min, session readings with unknown age (`at: 0`), and windows past their reset are not treated as valid budgets. Fresh source fallbacks still apply; context is preserved. Desktop: dim empty heart/food containers plus `?`, no animations or fake full supply; CLI: dim contours with `?`. Unknown Fable/Sonnet rows are absent; `/hud` and `/hud debug` explain the state.
+- **Model families.** No pinned release list. Fable/Sonnet/Opus names normalize case-insensitively by family substring, including old cache keys, before merging by source recency. Bubbles only represent Sonnet with fresh usage > 0. No model-release notification feature.
 
 ## Rendering, and what was learned the hard way
 

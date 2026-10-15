@@ -37,7 +37,7 @@ Im Terminal (reduziert, eine Zeile; Balken links, Werte rechts):
 | **Herzen** (links) | 7-Tage-Limit über alle Modelle: übrige Herzen = übriges Wochenbudget. Jedes halbe Herz entspricht 5 %. | Ab 2 Herzen (≥ 80 % genutzt) zittern sie. Steigt die Nutzung um ein halbes Herz, blinken sie wie bei Schaden. Nach einem Reset läuft die Regenerations-Welle durch. |
 | **Rüstung** (über den Herzen) | Fable-Wochenlimit, übrige Haltbarkeit | Bei 100 % verschwindet die Rüstung ganz, wie im Spiel ohne Rüstung. |
 | **Hunger** (rechts, füllt von rechts) | Sitzungslimit, also das 5-Stunden-Fenster | Ab 80 % genutzt schüttelt sich die Leiste (keine Sättigung mehr). Bei 100 % wird sie grün (Hunger-Effekt). |
-| **Luftblasen** (über dem Hunger) | Ein weiteres Modell-Wochenlimit, Sonnet zuerst | Erscheinen nur, wenn du das Modell nutzt, so wie Blasen nur unter Wasser auftauchen. Bei 100 % wackeln leere Blasen (du ertrinkst). |
+| **Luftblasen** (über dem Hunger) | Ausschließlich Sonnet-Wochenbudget, übriger Vorrat | Erscheinen bei aktuellen Sonnet-Limitdaten mit Nutzung über 0 %, unabhängig vom gerade gewählten Modell. Kein Ersatz durch Opus. Bei 100 % wackeln leere Blasen (du ertrinkst). |
 | **XP-Leiste + Level** | Kontextfenster: Füllstand und Prozent als grüne Level-Zahl | Die Zahl ist in der Minecraft-Schrift mit schwarzem Rand gesetzt, genau wie im Spiel. |
 
 Rechts neben dem HUD steht pro Wert eine Spalte in der **Minecraft-Schrift**, mit dem Textschatten des Spiels. Jede Spalte hat drei Zeilen, die genau auf den drei HUD-Reihen liegen: oben das Label, in der Mitte der Wert, unten das Detail. Die Zeilen liegen 10 Pixel auseinander, also mit Luft dazwischen.
@@ -47,7 +47,7 @@ Rechts neben dem HUD steht pro Wert eine Spalte in der **Minecraft-Schrift**, mi
 | **Sitzung** | 5-Stunden-Limit, genutzt | `16:30`, die lokale Uhrzeit des Resets |
 | **Woche** | 7-Tage-Limit, genutzt | `Mi 00:00` |
 | **Fable** | Fable-Wochenlimit, genutzt | `Mi 00:00` |
-| **Sonnet** | nur, wenn du Sonnet nutzt | Wochentag und Uhrzeit |
+| **Sonnet** | nur bei aktuellen Budgetdaten mit Nutzung über 0 % | Wochentag und Uhrzeit |
 | **Kontext** | Kontextfenster, belegt | `98K / 200K` (Tokens), ab einer Million `785K / 1M` |
 
 Eine einzige feine senkrechte Linie (Label-Grau, 30 % Deckkraft) trennt **Sitzung** vom **Wochenblock** (Woche, Fable und ggf. Sonnet). Sie sitzt mittig zwischen dem sichtbaren Textende der Sitzung und dem ersten Wochenwert. Fehlt „Woche“, bleibt sie vor Fable bzw. Sonnet; fehlt die Sitzung oder der gesamte Wochenblock, entfällt sie. Zwischen Sitzung und Kontext allein steht also keine Linie. Nur in der Desktop-App, das Terminal bleibt unverändert.
@@ -73,9 +73,14 @@ Die Breite des Bands kennt die Mod in Zellen der Code-Schrift (`bodyColumns`). `
 - **5 Stunden, 7 Tage und Kontext** kommen aus `$.session.usage()` und `session.measure`. Das sind dieselben Werte wie in der Statuszeile, aus den Antwort-Headern jeder API-Antwort. Kostenlos, ohne zusätzliche Anfrage.
 - **Fable (und Sonnet)** kommen aus dem undokumentierten Endpoint `GET https://api.anthropic.com/api/oauth/usage`, den auch `/usage` liest. Fable steht dort in `limits[]` als `weekly_scoped` mit `scope.model.display_name = "Fable"`. Ältere Felder wie `seven_day_*` werden ebenfalls gelesen. Die Mod fragt den Endpoint mit dem Login der laufenden Sitzung über `$.session.authorize()` und `$.http.fetch`. Der Token bleibt dabei in Claude Code und erreicht den Mod-Code nie.
 - **Abfragehäufigkeit**: nach einem Turn höchstens alle 2 Minuten (nach einem Fable-Turn alle 60 Sekunden), im Leerlauf alle 5 Minuten. Alle offenen Sitzungen teilen sich ein Ergebnis über `$.store`, mehrere Fenster fragen also nicht öfter. Bei `429` wartet die Mod 10 Minuten, bei `401`/`403` 30 Minuten.
-- Ist ein Reset-Zeitpunkt vorbei, füllt das HUD die Leiste sofort wieder auf, bis neue Daten kommen.
+- Ist ein Reset-Zeitpunkt vorbei, gilt der alte Budgetwert als unbekannt, bis die Datenquelle den neuen Zeitraum bestätigt. Das HUD nimmt nicht mehr automatisch ein volles Budget an.
+- Budgetmessungen sind höchstens **15 Minuten** gültig. Frische Sitzungswerte bleiben nutzbar, wenn nur der Endpoint ausfällt; Kontextdaten sind von dieser Altersgrenze ausgenommen. Bei längeren eigenen Abfrageintervallen kann die Budgetanzeige bis zum nächsten Abruf unbekannt werden.
 
-> Der Endpoint ist nicht dokumentiert und kann sich jederzeit ändern. Liefert er nichts, zeigt das HUD weiter 5 h, 7 Tage und Kontext. Die Rüstung fehlt dann, und `/hud debug` nennt den Grund.
+**Unbekannt ist nicht voll und nicht verbraucht:** Fehlen aktuelle Wochen- oder Sitzungsdaten, zeigt das Desktop-HUD abgeblendete leere Konturen mit einem `?`, ohne Schaden-, Hunger- oder Heilanimation. Die CLI zeigt ebenfalls abgeblendete Konturen mit Fragezeichen. Nicht bekannte Budgetspalten entfallen; `/hud` erklärt „unbekannt (keine aktuellen Daten)“, `/hud debug` nennt den Budgetstatus. Rüstung und Luftblasen bleiben ohne passende Daten ausgeblendet. Frisch bestätigte `0 %` Nutzung zeigt dagegen einen vollen Vorrat.
+
+**Neue Fable-/Sonnet-Versionen:** Die Erkennung orientiert sich am Familiennamen, nicht an einer Versionsliste. Namen wie `Claude Fable 6` oder `claude-sonnet-6-1` werden automatisch zu Fable bzw. Sonnet zusammengeführt; auch ältere Cache-Namen werden berücksichtigt. Voraussetzung sind passende Budgetdaten mit erkennbarem Familiennamen. Ein völlig anderer Name oder ein geändertes Datenformat kann eine Anpassung erfordern. Das ist keine Modellankündigung: Es gibt keine Veröffentlichungserkennung oder Verfügbarkeitsbenachrichtigung.
+
+> Der Endpoint ist nicht dokumentiert und kann sich jederzeit ändern. Bei Ausfällen bleiben nur noch gültige Messungen sichtbar; fehlende oder veraltete Budgets werden als unbekannt behandelt.
 
 ## Installieren
 
