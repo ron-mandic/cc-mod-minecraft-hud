@@ -1,7 +1,7 @@
 {
   "name": "minecraft-hud",
   "displayName": "Minecraft HUD",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "description": "Minecraft-HUD über dem Prompt: Herzen = Wochenlimit, Rüstung = Fable, Hunger = 5-Stunden-Limit, XP = Kontextfenster",
   "author": { "name": "ron-mandic" },
   "keywords": ["hud", "usage", "minecraft", "mod"],
