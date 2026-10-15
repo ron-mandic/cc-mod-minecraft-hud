@@ -157,6 +157,30 @@ describe('drawing', () => {
     expect(titlesOf(snapshot, NOW).xp).toContain('84.000 von 200.000 Tokens')
   })
 
+  test('new chats keep context visible without borrowing another chats measurement', () => {
+    const initial = { ...snapshot, air: undefined, context: { window: 1_000_000 } }
+    const measured = { ...initial, context: { window: 1_000_000, tokens: 924_000, percent: 92 } }
+    expect(columnsOf(initial, NOW).find(column => column.key === 'context')).toEqual({
+      key: 'context', label: 'Kontext', value: '?', detail: '? / 1M',
+    })
+    expect(columnsOf({ ...initial, context: undefined }, NOW).find(column => column.key === 'context')).toEqual({
+      key: 'context', label: 'Kontext', value: '?', detail: '',
+    })
+    expect(columnsOf({ ...initial, context: { window: 1_000_000, tokens: 0, percent: 0 } }, NOW)
+      .find(column => column.key === 'context')?.value).toBe('0 %')
+    for (const bodyColumns of [86, 96, 130]) {
+      const prefs = { scale: 1.5, numbers: 'full' } as const
+      const first = layoutBand(initial, prefs, { now: NOW, random, bodyColumns })
+      const later = layoutBand(measured, prefs, { now: NOW, random, bodyColumns })
+      expect(first.columns.map(column => column.key)).toEqual(['session', 'week', 'fable', 'context'])
+      expect(first.columnStarts).toEqual(later.columnStarts)
+      expect(first.drawing.alt).toContain('Kontext ? ? / 1M')
+      expect(first.drawing.svg).not.toContain('href="#lv"')
+    }
+    const off = layoutBand(initial, { scale: 1.5, numbers: 'off' }, { now: NOW, random, bodyColumns: 100 })
+    expect(off.columns).toHaveLength(0)
+  })
+
   test('tokens in short: K up to a million, then M', () => {
     expect(shortTokens(684)).toBe('684')
     expect(shortTokens(684_000)).toBe('684K')

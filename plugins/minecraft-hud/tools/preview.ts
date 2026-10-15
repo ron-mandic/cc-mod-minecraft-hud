@@ -23,6 +23,7 @@ const LIVE = {
 }
 const SONNET = { ...LIVE, air: { used: 37, model: 'Sonnet', resetsAt: '2026-10-06T22:00:00+00:00' } }
 const MILLION = { ...LIVE, context: { window: 1_000_000, tokens: 684_000, percent: 68.4 } }
+const NEW_CHAT: HudSnapshot = { ...LIVE, context: { window: 1_000_000 } }
 const UNKNOWN: HudSnapshot = { context: LIVE.context, source: 'none' }
 const PARTIAL: HudSnapshot = { ...LIVE, week: undefined }
 const TIGHT = { ...LIVE, week: { ...LIVE.week, used: 86 }, session: { ...LIVE.session, used: 83 }, context: { window: 200000, tokens: 182000, percent: 91 } }
@@ -74,6 +75,7 @@ for (const width of [1200, 796, 700, 560]) html += bandHtml(width, MILLION, `${w
 html += bandHtml(770, UNKNOWN, '770 px · Budgets unbekannt') +
   bandHtml(770, PARTIAL, '770 px · nur Woche unbekannt') +
   bandHtml(770, UNKNOWN, '770 px · unbekannt, hell', '#f4f3ef')
+html += bandHtml(770, NEW_CHAT, '770 px · neuer Chat, Kontext noch unbekannt')
 html += '<p>Terminal, 140 / 100 / 80 / 60 / 40 Spalten</p><pre>' + [140, 100, 80, 60, 40].map(terminalHtml).join('') + '</pre>'
 // beside the README, outside the plugin folder, so an install does not copy it along
 const PREVIEW = join(ROOT, '..', '..', 'docs', 'preview.html')
@@ -84,4 +86,5 @@ if (process.argv.includes('--docs')) {
   bandPng(join(ROOT, '..', '..', 'docs', 'hud-preview-wide.png'), 1200)
   bandPng(join(ROOT, '..', '..', 'docs', 'hud-preview-unknown.png'), 770, UNKNOWN)
   bandPng(join(ROOT, '..', '..', 'docs', 'hud-preview-sonnet.png'), 1000, SONNET)
+  bandPng(join(ROOT, '..', '..', 'docs', 'hud-preview-new-chat.png'), 770, NEW_CHAT)
 }

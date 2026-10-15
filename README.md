@@ -48,7 +48,7 @@ Rechts neben dem HUD steht pro Wert eine Spalte in der **Minecraft-Schrift**, mi
 | **Woche** | 7-Tage-Limit, genutzt | `Mi 00:00` |
 | **Fable** | Fable-Wochenlimit, genutzt | `Mi 00:00` |
 | **Sonnet** | nur bei aktuellen Budgetdaten mit Nutzung über 0 % | Wochentag und Uhrzeit |
-| **Kontext** | Kontextfenster, belegt | `98K / 200K` (Tokens), ab einer Million `785K / 1M` |
+| **Kontext** | Kontextfenster, belegt; vor der ersten Messung `?` | `98K / 200K` (Tokens), ab einer Million `785K / 1M`; im neuen Chat zunächst `? / 1M`, sofern die Fenstergröße bekannt ist |
 
 Eine einzige feine senkrechte Linie (Label-Grau, 30 % Deckkraft) trennt **Sitzung** vom **Wochenblock** (Woche, Fable und ggf. Sonnet). Sie sitzt mittig zwischen dem sichtbaren Textende der Sitzung und dem ersten Wochenwert. Fehlt „Woche“, bleibt sie vor Fable bzw. Sonnet; fehlt die Sitzung oder der gesamte Wochenblock, entfällt sie. Zwischen Sitzung und Kontext allein steht also keine Linie. Nur in der Desktop-App, das Terminal bleibt unverändert.
 
