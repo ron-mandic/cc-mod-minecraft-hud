@@ -1,12 +1,12 @@
 # cc-mod-minecraft-hud: notes for agents
 
-ron-mandic's mod `minecraft-hud` for Claude Code, in `plugins/minecraft-hud`. The folder doubles as ron-mandic's private marketplace `ron-mandic` (`.claude-plugin/marketplace.json`, registered as a local directory source). The git remote is the **private** GitHub repo `ron-mandic/cc-mod-minecraft-hud`.
+The mod `minecraft-hud` for Claude Code lives in `plugins/minecraft-hud`. The folder doubles as the local marketplace `ron-mandic` (`.claude-plugin/marketplace.json`, registered as a local directory source). The GitHub repo `ron-mandic/cc-mod-minecraft-hud` is public and contains source code only, not Minecraft assets.
 
 ## Naming (decided 2026-10-05)
 
 | Level | Name | Rule |
 | :- | :- | :- |
-| GitHub repo | `cc-mod-minecraft-hud` | `cc-mod-<mod>`, one repo per mod; the prefix groups the mods among ron-mandic's repos |
+| GitHub repo | `cc-mod-minecraft-hud` | `cc-mod-<mod>`, one repo per mod; the prefix groups related mod repos |
 | Plugin | `minecraft-hud` | the mod's own name, no prefix (inside Claude Code, "cc-mod" would repeat itself) |
 | Marketplace | `ron-mandic` | the publisher namespace, the same for every mod |
 | Plugin ID | `minecraft-hud@ron-mandic` | `<mod>@ron-mandic`, kept stable from now on |
@@ -17,20 +17,21 @@ Claude Code registers one marketplace per name, so a second mod repo cannot also
 2. Add each `cc-mod-*` repo to it as a git submodule under `plugins/<mod>`.
 3. Register the catalog instead of this folder.
 
-The IDs stay `<mod>@ron-mandic`, and each mod keeps its own repo. Use submodules, not `github` sources, because a fresh clone lacks the git-ignored assets. The user guide is `README.md` (German). ron-mandic works in German, mostly in the Claude desktop app (Code tab).
+The IDs stay `<mod>@ron-mandic`, and each mod keeps its own repo. Use submodules, not `github` sources, because a fresh clone lacks the git-ignored assets. The user guide is `README.md` (German).
 
-## Never publish
+## Never publish Minecraft assets or credentials
 
 minecraft-hud draws Mojang's original Minecraft sprites and font. They may not be redistributed.
 
-- Keep the GitHub repo private. Do not add this folder to a public marketplace or upload the assets anywhere.
+- Public source is allowed. Never upload Minecraft assets, generated `sprites.ts`, screenshots/previews containing the assets, or packages bundling them.
+- Never publish credentials, private contact details, absolute personal home paths, or local login state. Public username/namespace attribution is intentional.
 - Never install straight from GitHub: a clone has no assets. Clone, run `fetch_assets.py`, then add the local folder as the marketplace.
 - `.gitignore` keeps out `plugins/minecraft-hud/assets/`, the generated `hooks/sprites.ts` and `docs/*.png` (the previews show sprites).
 - `plugins/minecraft-hud/tools/fetch_assets.py` rebuilds all of them locally from Mojang's official `client.jar`, SHA-1 checked.
 
 ## Install state
 
-Installed user-wide since 2026-10-05: `minecraft-hud@ron-mandic`, `enabledPlugins` in `~/.claude/settings.json`. The marketplace is declared in `extraKnownMarketplaces` as `{ "source": "directory", "path": "$HOME/projects/cc-mod-minecraft-hud" }`.
+For a user-wide installation, enable `minecraft-hud@ron-mandic` in `~/.claude/settings.json`. Register the local clone as a directory marketplace. Any `extraKnownMarketplaces` entry must use the local clone's absolute path in the user's private settings, never a committed personal path.
 
 The install is a copy pinned to `version`, at `~/.claude/plugins/cache/ron-mandic/minecraft-hud/<version>/`; it is not loaded in place. To ship a change:
 
@@ -101,9 +102,9 @@ claude plugin test plugins/minecraft-hud
 bun plugins/minecraft-hud/tools/preview.ts --docs
 ```
 
-Type-check: use the tsconfig from the header of the `claude-code.d.ts` the plugin-authoring skill writes (strict, `noUncheckedIndexedAccess`), including that file, `hooks/` and `types/`. Mods require Claude Code 2.1.287+. Use the desktop app's binary, `~/Library/Application Support/Claude/claude-code/<version>/…/claude.app/Contents/MacOS/claude`. Run tests with `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`.
+Type-check: use the tsconfig from the header of the `claude-code.d.ts` the plugin-authoring skill writes (strict, `noUncheckedIndexedAccess`), including that file, `hooks/` and `types/`. Mods require Claude Code 2.1.287+. If the terminal binary is older, use the desktop app's binary at `~/Library/Application Support/Claude/claude-code/<version>/…/claude.app/Contents/MacOS/claude`. Run tests with `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`.
 
-**Hot reload.** Load the `plugin-authoring` skill, copy the mod into `~/.claude/dev-mods/<session-id>/minecraft-hud`, and let ron-mandic enable hot reload. Edit there, then rsync back here (excluding `README.md`, `.claude-plugin/types`, `tsconfig.json`). A forked or resumed session gets a new dev-mods folder and does not load the old one; dev-mods copies are disposable once their session ends.
+**Hot reload.** Load the `plugin-authoring` skill, copy the mod into `~/.claude/dev-mods/<session-id>/minecraft-hud`, and let the user enable hot reload. Edit there, then rsync back here (excluding `README.md`, `.claude-plugin/types`, `tsconfig.json`). A forked or resumed session gets a new dev-mods folder and does not load the old one; dev-mods copies are disposable once their session ends.
 
 **Avoid a double band.** The installed copy loads in every session, so a hot-reloaded dev copy would draw a second band and register `/hud` twice. Develop in a session opened in this folder, and switch the installed copy off for this folder only:
 
@@ -115,7 +116,7 @@ This writes `.claude/settings.local.json` here. Afterwards, re-enable it with `e
 
 Without hot reload: edit here, bump `version`, run `claude plugin update minecraft-hud@ron-mandic`, then `/reload-plugins`.
 
-When removing anything, move it to `~/.Trash` and never delete it outright. Retired copies from 2026-10-05 went there; this folder and the private GitHub repo are the only copies kept.
+When removing local files, move them to `~/.Trash` rather than deleting them outright. Keep machine-specific cleanup history out of public documentation.
 
 ## Open ends
 

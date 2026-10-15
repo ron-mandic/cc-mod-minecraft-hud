@@ -2,11 +2,11 @@
 
 Eine Mod, die deine Nutzung als originalgetreues Minecraft-HUD (Java Edition) über dem Prompt zeigt. In der Desktop-App erscheinen die echten Sprites, im Terminal eine reduzierte Zeile aus farbigen Zeichen, die sich auch abschalten lässt.
 
-> **Privat.** Die Mod nutzt Mojangs Original-Sprites. Installiert wird sie aus dem lokalen Marketplace `ron-mandic`. Ihr Code liegt zusätzlich im **privaten** GitHub-Repo [`ron-mandic/cc-mod-minecraft-hud`](https://github.com/ron-mandic/cc-mod-minecraft-hud), dort ohne die Mojang-Assets. Siehe [Privat halten](#privat-halten).
+> **Öffentlicher Quellcode, keine mitgelieferten Minecraft-Assets.** Die Mod nutzt lokal bezogene Mojang-Sprites und Schrift. Der Code liegt in [`ron-mandic/cc-mod-minecraft-hud`](https://github.com/ron-mandic/cc-mod-minecraft-hud); installiert wird nach dem lokalen Asset-Abruf aus dem Marketplace `ron-mandic`. Siehe [Assets und Veröffentlichung](#assets-und-veröffentlichung).
 
 ## Kurzanleitung
 
-- **Installiert** ist die Mod user-weit, also in jedem Repo: `minecraft-hud@ron-mandic`, aus `~/Git Projects/cc-mod-minecraft-hud`. Neue Sitzungen laden sie von selbst, eine offene Sitzung mit `/reload-plugins`.
+- **User-weite Installation:** `minecraft-hud@ron-mandic` gilt nach der Installation mit `--scope user` in jedem Repo. Neue Sitzungen laden die Mod automatisch, eine offene Sitzung mit `/reload-plugins`.
 - **Geändert?** Version in `plugin.json` erhöhen, `claude plugin update minecraft-hud@ron-mandic`, neu starten.
 - **`/hud`** zeigt einen kurzen Status ohne Icons (normalerweise vier Zeilen).
 - **`/hud details`** zeigt ausführliche Erklärungen und Einstellungen, ebenfalls ohne Icons; `/hud hilfe` zeigt die Befehle.
@@ -15,15 +15,7 @@ Eine Mod, die deine Nutzung als originalgetreues Minecraft-HUD (Java Edition) ü
 - **`/hud größe auto|1|1.5|2|3`** und **`/hud zahlen voll|kurz|aus`** ändern Größe und Spalten.
 - **Ganz aus:** `claude plugin disable minecraft-hud@ron-mandic` (überall) oder mit `--scope local` (nur im aktuellen Repo).
 
-> Die Bilder zeigen Mojang-Sprites und liegen deshalb nur lokal vor, nicht im Git-Repo. Neu erzeugen: `bun plugins/minecraft-hud/tools/preview.ts --docs`.
-
-So sieht das Band in einem 770 px breiten Chat aus (Größe 1,5):
-
-![Das HUD links, daneben die Spalten Sitzung, Woche, Fable und Kontext über die ganze Breite verteilt](docs/hud-preview.png)
-
-Und in einem 1200 px breiten Chat (Größe 2):
-
-![Dasselbe Band bei 1200 px, größer und mit allen Reset-Zeiten](docs/hud-preview-wide.png)
+Eine Desktop-Vorschau lässt sich nach dem lokalen Asset-Abruf mit `bun plugins/minecraft-hud/tools/preview.ts` erzeugen und unter `docs/preview.html` öffnen. Bilder werden nicht veröffentlicht, weil sie Mojang-Sprites enthalten.
 
 Im Terminal (reduziert, eine Zeile; Balken links, Werte rechts):
 
@@ -85,7 +77,7 @@ Die Breite des Bands kennt die Mod in Zellen der Code-Schrift (`bodyColumns`). `
 
 ## Installieren
 
-Seit dem 5. Oktober 2026 ist die Mod **user-weit installiert** (`~/.claude/settings.json` → `enabledPlugins`). Der Marketplace `ron-mandic` zeigt auf diesen Ordner, `~/Git Projects/cc-mod-minecraft-hud`. Claude Code installiert eine **Kopie** der Version aus `plugin.json` nach `~/.claude/plugins/cache/ron-mandic/`.
+Die Installation mit `--scope user` aktiviert die Mod benutzerweit (`~/.claude/settings.json` → `enabledPlugins`). Der Marketplace `ron-mandic` verweist auf den gewählten lokalen Klon. Claude Code installiert eine **Kopie** der Version aus `plugin.json` nach `~/.claude/plugins/cache/ron-mandic/`.
 
 Nach einer Änderung hier: `version` in `plugins/minecraft-hud/.claude-plugin/plugin.json` erhöhen, dann
 
@@ -98,15 +90,15 @@ Danach Claude Code neu starten oder `/reload-plugins` ausführen.
 So geht es auf einem anderen Mac oder nach einer Neuinstallation:
 
 ```bash
-gh repo clone ron-mandic/cc-mod-minecraft-hud "$HOME/Git Projects/cc-mod-minecraft-hud"
+gh repo clone ron-mandic/cc-mod-minecraft-hud "$HOME/projects/cc-mod-minecraft-hud"
 ```
 
 ```bash
-claude plugin marketplace add "$HOME/Git Projects/cc-mod-minecraft-hud"
+claude plugin marketplace add "$HOME/projects/cc-mod-minecraft-hud"
 ```
 
 ```bash
-python3 "$HOME/Git Projects/cc-mod-minecraft-hud/plugins/minecraft-hud/tools/fetch_assets.py"
+python3 "$HOME/projects/cc-mod-minecraft-hud/plugins/minecraft-hud/tools/fetch_assets.py"
 ```
 
 ```bash
@@ -182,39 +174,39 @@ Die Mod liegt in `plugins/minecraft-hud/` (Hinweise für Agenten in [CLAUDE.md](
 | `hooks/desktop.ts` | Die SVGs: das HUD im Vanilla-Layout mit Animationen und je Spalte ein Bild in Minecraft-Schrift. `layoutBand()` wählt Größe und Spalten, `GIVE_UP` legt fest, was bei Enge zuerst wegfällt. Farben, `MIN_GAP_PX` und `CELL_PX` stehen oben in der Datei. |
 | `hooks/terminal.ts` | Die reduzierte Terminal-Zeile: Zeichen, Farben und welche Werte bei schmalem Fenster bleiben |
 | `hooks/text.ts` | Alle deutschen Texte: die Spalten (`columnsOf`), die Reset-Uhrzeiten (`resetText`), die `/hud`-Ausgabe |
-| `assets/…` | Die Original-PNGs aus Minecraft 26.3, die Schrift-Sheets und Mojangs Zeichentabelle `font/include/default.json`. Nicht in Git, siehe [Privat halten](#privat-halten). |
+| `assets/…` | Die Original-PNGs aus Minecraft 26.3, die Schrift-Sheets und Mojangs Zeichentabelle `font/include/default.json`. Nicht in Git, siehe [Assets und Veröffentlichung](#assets-und-veröffentlichung). |
 | `tools/fetch_assets.py` | Holt die Assets aus Mojangs offiziellem `client.jar` (SHA-1 geprüft) und baut `hooks/sprites.ts` neu. `--version latest` nimmt die neueste Minecraft-Version. |
 | `tools/build_sprites.py` | Macht aus den PNGs `hooks/sprites.ts`. Eigene PNGs (etwa aus einem Resource Pack) einfach austauschen und `python3 tools/build_sprites.py` ausführen. |
 
 Nach einer Änderung im Terminal prüfen:
 
 ```bash
-claude plugin validate "$HOME/Git Projects/cc-mod-minecraft-hud/plugins/minecraft-hud"
+claude plugin validate "$HOME/projects/cc-mod-minecraft-hud/plugins/minecraft-hud"
 ```
 
 ```bash
-claude plugin test "$HOME/Git Projects/cc-mod-minecraft-hud/plugins/minecraft-hud"
+claude plugin test "$HOME/projects/cc-mod-minecraft-hud/plugins/minecraft-hud"
 ```
 
 Danach Version erhöhen, `claude plugin update minecraft-hud@ron-mandic` ausführen und neu starten (siehe [Installieren](#installieren)). `bun plugins/minecraft-hud/tools/preview.ts` zeigt das Band vorher in `docs/preview.html` bei mehreren Chatbreiten. Am bequemsten: Claude bitten („Mach die Rüstung zur Opus-Nutzung“). Der eingebaute Skill `plugin-authoring` kennt die Mods-API und lädt Änderungen per Hot-Reload.
 
 ## Terminal (CLI): Voraussetzungen
 
-- Mods benötigen Claude Code **2.1.287 oder neuer**.
-- Login mit `claude auth status` prüfen und bei Bedarf `claude auth login` ausführen.
-- Die Desktop-App bringt ihre eigene Version mit, dort läuft alles schon.
+- Mods benötigen Claude Code **2.1.287 oder neuer**. Die lokale Version lässt sich mit `claude --version` prüfen.
+- Plan-Limits setzen einen passenden Login voraus. Status mit `claude auth status` prüfen, bei Bedarf mit `claude auth login` anmelden.
+- Die Desktop-App bringt ihre eigene Claude-Code-Version mit; Desktop und CLI daher getrennt prüfen.
 
 ## Wenn etwas nicht stimmt
 
-- **Kein HUD**: `/plugin` muss `1 mod active · minecraft-hud` zeigen. Läuft `/hud aus` im Repo? `/hud` zeigt das unter „Einstellungen“.
+- **Kein HUD**: `/plugin` muss `1 mod active · minecraft-hud` zeigen. Läuft `/hud aus` im Repo? `/hud details` zeigt die Einstellungen.
 - **Keine Rüstung**: `/hud debug` zeigt, was der Endpoint lieferte (`Felder: …`) und warum er schwieg (`Problem: …`).
 - **Fehler der Mod**: `claude --debug`, dann im Debug-Log nach `minecraft-hud` suchen.
 
-## Privat halten
+## Assets und Veröffentlichung
 
 Die Sprites und die Schrift gehören Mojang/Microsoft und stammen unverändert aus dem offiziellen Client (`client.jar` 26.3, `piston-data.mojang.com`). Sie sind nur für deinen persönlichen Gebrauch gedacht. Deshalb gilt:
 
-- Installiert wird aus dem **lokalen Ordner**. Kein öffentlicher Marketplace kennt die Mod, und lokal installierte Plugins werden nicht mit deinem claude.ai-Konto synchronisiert.
-- Der Code liegt im **privaten** Repo `ron-mandic/cc-mod-minecraft-hud`. Es ist nur für dich sichtbar, schalte es nicht auf öffentlich.
-- `.gitignore` hält `assets/`, die daraus erzeugte `hooks/sprites.ts` und die Vorschaubilder aus Git heraus. Auch das private Repo enthält also nur eigenen Code. Wer es klont, holt die Assets mit `tools/fetch_assets.py` selbst von Mojang.
-- Soll die Mod je öffentlich werden: so lassen (keine Assets im Repo, Abruf per Skript), oder eigene Grafiken zeichnen. Vorher Mojangs Nutzungsbedingungen prüfen.
+- Veröffentlicht wird ausschließlich der Quellcode, ohne Mojang-Sprites, Schriftdateien oder daraus erzeugte Vorschauen.
+- Installiert wird aus dem **lokalen Ordner**, nachdem `tools/fetch_assets.py` die benötigten Assets direkt von Mojang bezogen hat.
+- `.gitignore` hält `assets/`, die daraus erzeugte `hooks/sprites.ts` und Vorschaubilder aus Git heraus. Keine Asset-Dateien, generierten Sprite-Module oder Pakete mit diesen Inhalten hochladen.
+- Für die Nutzung der Minecraft-Assets gelten Mojangs Bedingungen. Die öffentliche Sichtbarkeit dieses Repos erteilt keine Rechte an diesen Assets.
