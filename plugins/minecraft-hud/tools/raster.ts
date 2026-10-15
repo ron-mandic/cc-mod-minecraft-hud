@@ -1,4 +1,4 @@
-// Rasterizes the SVG subset this mod writes (pixel-run paths, <use>, groups, opacity, the XP clip) to
+// Rasterizes the SVG subset this mod writes (pixel-run paths, rects, <use>, groups, opacity, the XP clip) to
 // RGBA, and writes PNGs: pixel-exact previews without a browser. Animations are drawn at rest.
 import { deflateSync } from 'node:zlib'
 import { writeFileSync } from 'node:fs'
@@ -51,8 +51,15 @@ export function rasterize(svg: string, scale: number, bg: [number, number, numbe
   }
   const draw = (n: Node, tx: number, ty: number, fill: string, alpha: number, clipW: number) => {
     switch (n.tag) {
-      case 'defs': case 'clipPath': case 'animate': case 'animateTransform': case 'title': case 'rect':
+      case 'defs': case 'clipPath': case 'animate': case 'animateTransform': case 'title':
         return
+      case 'rect': {
+        const color = n.attrs.fill ?? fill
+        const x0 = Number(n.attrs.x ?? 0), y0 = Number(n.attrs.y ?? 0)
+        for (let y = 0; y < Number(n.attrs.height ?? 0); y++)
+          for (let x = 0; x < Number(n.attrs.width ?? 0); x++) paint(tx + x0 + x, ty + y0 + y, color, alpha * Number(n.attrs.opacity ?? 1), clipW)
+        return
+      }
       case 'path': {
         const color = n.attrs.fill ?? fill
         for (const run of n.attrs.d!.matchAll(/M(-?\d+) (-?\d+)h(\d+)v1h-\d+z/g)) {
@@ -74,7 +81,7 @@ export function rasterize(svg: string, scale: number, bg: [number, number, numbe
         let c = clipW
         const clip = n.attrs['clip-path']?.match(/#([^)]+)/)?.[1]
         if (clip) c = Math.min(c, Number(ids.get(clip)?.children[0]?.attrs.width ?? Infinity))
-        for (const child of n.children) draw(child, tx, ty, fill, a, c)
+        for (const child of n.children) draw(child, tx, ty, n.attrs.fill ?? fill, a, c)
       }
     }
   }

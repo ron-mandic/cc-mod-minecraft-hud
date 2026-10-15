@@ -27,6 +27,11 @@ const COLUMN_LINES = [TOP_ROW, MIDDLE_ROW, XP_BAR_Y] as const
 /** Label and detail a darker grey, the figure a lighter one: all quieter than the sprites. */
 const LABEL_COLOR = 0x808080
 const VALUE_COLOR = 0xc0c0c0
+/** The faint rule between two columns: label grey, mostly see-through, one sprite pixel wide. */
+const DIVIDER_COLOR = LABEL_COLOR
+const DIVIDER_OPACITY = 0.3
+const DIVIDER_TOP = 1
+const DIVIDER_HEIGHT = HUD_HEIGHT - 2
 /** The least room between two pieces of the band, in CSS pixels, however wide it is. */
 const MIN_GAP_PX = 20
 /** A desktop band cell in CSS pixels (its code font's advance), to turn `bodyColumns` into room. */
@@ -285,6 +290,30 @@ export function columnWidth(column: HudColumn): number {
   return Math.max(textWidth(column.label), textWidth(column.value), textWidth('100 %'), detail) + 1
 }
 
+/** How wide a column's text actually runs now (shadow included), short of its reserved width. */
+const inkWidth = (column: HudColumn) =>
+  Math.max(textWidth(column.label), textWidth(column.value), column.detail === '' ? 0 : textWidth(column.detail)) + 1
+
+/**
+ * A faint rule between each two columns, centred between where the left one's text ends and the
+ * right one starts: a column reserves room for its widest form, and a rule in the middle of the
+ * reserved gap would sit off-centre next to a short `Reset 14:20`.
+ */
+function dividers(columns: readonly HudColumn[], starts: readonly number[]) {
+  let rules = ''
+  for (let i = 1; i < columns.length; i += 1) {
+    const left = columns[i - 1]
+    const start = starts[i]
+    const leftStart = starts[i - 1]
+    if (left === undefined || start === undefined || leftStart === undefined) {
+      continue
+    }
+    const x = Math.round((leftStart + inkWidth(left) + start) / 2)
+    rules += `<rect x="${x}" y="${DIVIDER_TOP}" width="1" height="${DIVIDER_HEIGHT}"/>`
+  }
+  return rules === '' ? '' : `<g id="dv" fill="${hex(DIVIDER_COLOR)}" opacity="${DIVIDER_OPACITY}">${rules}</g>`
+}
+
 /** One column at `x`: label, figure and detail on the HUD's three rows, in the game's font with its shadow. */
 function writeColumn(writer: Writer, column: HudColumn, x: number) {
   const [labelY, valueY, detailY] = COLUMN_LINES
@@ -385,8 +414,10 @@ export function layoutBand(
   const writer = new Writer()
   const sprites = hudSprites(snapshot, { ...args, scale }, writer)
   let x = HUD_WIDTH
+  const starts: number[] = []
   columns.forEach((column, i) => {
     x += gap
+    starts.push(Math.round(x))
     writeColumn(writer, column, Math.round(x))
     x += widths[i] ?? 0
   })
@@ -395,7 +426,7 @@ export function layoutBand(
     scale,
     columns,
     drawing: {
-      svg: svgOf(viewWidth, scale, SPRITE_DEFS + writer.defs(), sprites + writer.body()),
+      svg: svgOf(viewWidth, scale, SPRITE_DEFS + writer.defs(), sprites + dividers(columns, starts) + writer.body()),
       alt,
       width: Math.round(viewWidth * scale * 100) / 100,
       height: Math.round(HUD_HEIGHT * scale * 100) / 100,

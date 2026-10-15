@@ -150,6 +150,19 @@ describe('drawing', () => {
     expect(fixed.columns).toHaveLength(0)
   })
 
+  test('a faint rule between each two columns, in the free room between them', () => {
+    const prefs = { scale: 'auto', numbers: 'full' } as const
+    const band = layoutBand(snapshot, prefs, { now: NOW, random, bodyColumns: 100 })
+    const rules = [...band.drawing.svg.matchAll(/<rect x="(\d+)" y="1" width="1"/g)].map(match => Number(match[1]))
+    expect(rules).toHaveLength(band.columns.length - 1)
+    expect(band.drawing.svg).toContain('opacity="0.3"')
+    // each rule right of the HUD and left of the band's end, in order
+    expect(rules[0]).toBeGreaterThan(HUD_WIDTH)
+    expect([...rules].sort((a, b) => a - b)).toEqual(rules)
+    const off = layoutBand(snapshot, { scale: 2, numbers: 'off' }, { now: NOW, random, bodyColumns: 100 })
+    expect(off.drawing.svg).not.toContain('id="dv"')
+  })
+
   test('low health jiggles and an empty session starves', () => {
     const low = { ...snapshot, week: { used: 85 }, session: { used: 100 } }
     const hud = drawHud(low, { scale: 1, now: NOW, random })
