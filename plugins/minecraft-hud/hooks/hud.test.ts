@@ -287,7 +287,7 @@ describe('drawing', () => {
     const off = layoutBand(snapshot, { scale: 2, numbers: 'off' }, { now: NOW, random, bodyColumns: 100 })
     expect(off.drawing.svg).not.toContain('id="dv"')
   })
-  test('weekly gaps stay compact at wide widths; group gaps grow instead', () => {
+  test('all right-hand gaps stay compact at wide widths; only outer gaps grow', () => {
     for (const bodyColumns of [200, 260]) {
       const band = layoutBand(snapshot, { scale: 2, numbers: 'full' }, { now: NOW, random, bodyColumns })
       const gapAfter = (i: number) =>
@@ -295,7 +295,8 @@ describe('drawing', () => {
       expect(gapAfter(1)).toBe(24) // week -> Fable
       expect(gapAfter(2)).toBe(24) // Fable -> Sonnet
       expect(gapAfter(0)).toBeGreaterThan(gapAfter(1)) // session -> weekly
-      expect(gapAfter(3)).toBeGreaterThan(gapAfter(2)) // weekly -> context
+      expect(gapAfter(3)).toBe(24) // Sonnet -> context stays inside the same group
+      expect(gapAfter(0)).toBeGreaterThanOrEqual(64)
     }
   })
 
@@ -315,7 +316,7 @@ describe('drawing', () => {
     expect(gap).toBeGreaterThanOrEqual(24 - band.scale)
   })
 
-  test('Fable balances whitespace between week and context', () => {
+  test('Fable stays evenly spaced inside the shared week/context group', () => {
     const reading = { ...snapshot, air: undefined }
     for (const bodyColumns of [96, 120, 200]) {
       const band = layoutBand(reading, { scale: 1.5, numbers: 'full' }, { now: NOW, random, bodyColumns })
@@ -328,24 +329,55 @@ describe('drawing', () => {
       const right = band.columnStarts[context]! - band.columnStarts[fable]! - columnWidth(band.columns[fable]!)
       expect(Math.abs(left - right)).toBeLessThanOrEqual(1)
       expect(left * band.scale).toBeGreaterThanOrEqual(24 - band.scale)
-      expect(right * band.scale).toBeGreaterThanOrEqual(32 - band.scale)
+      expect(right * band.scale).toBe(24)
     }
   })
 
+  test('the narrow session/Fable/context layout gives the divider more air than internal gaps', () => {
+    const reading = {
+      ...snapshot, air: undefined,
+      session: { used: 0, resetsAt: IN_3D }, fable: { used: 0, resetsAt: IN_3D },
+      context: { window: 1_000_000, tokens: 370_000, percent: 37 },
+    }
+    const band = layoutBand(reading, { scale: 1.5, numbers: 'full' }, { now: NOW, random, bodyColumns: 72 })
+    expect(band.columns.map(column => column.key)).toEqual(['session', 'fable', 'context'])
+    const internal = (band.columnStarts[2]! - band.columnStarts[1]! - columnWidth(band.columns[1]!)) * band.scale
+    expect(internal).toBe(24)
+    const rule = band.drawing.svg.match(/<rect x="(\d+)" y="1" width="1"/)
+    expect(rule).toBeDefined()
+    const ruleX = Number(rule?.[1])
+    const session = band.columns[0]!
+    const ink = Math.max(textWidth(session.label), textWidth(session.value), textWidth(session.detail)) + 1
+    expect((ruleX - band.columnStarts[0]! - ink) * band.scale).toBeGreaterThan(internal)
+    expect((band.columnStarts[1]! - ruleX - 1) * band.scale).toBeGreaterThan(internal)
+  })
   test('responsive groups never overlap or leave an orphan divider', () => {
-    for (const numbers of ['full', 'short', 'off'] as const) {
-      for (let bodyColumns = 30; bodyColumns <= 220; bodyColumns += 1) {
-        const band = layoutBand(snapshot, { scale: 'auto', numbers }, { now: NOW, random, bodyColumns })
-        expect(band.drawing.width).toBeLessThanOrEqual(bodyColumns * 7.8 + 0.01)
-        let end = HUD_WIDTH
-        band.columns.forEach((column, i) => {
-          expect(band.columnStarts[i]!).toBeGreaterThan(end)
-          end = band.columnStarts[i]! + columnWidth(column)
-        })
-        expect(end * band.scale).toBeLessThanOrEqual(band.drawing.width + band.scale / 2 + 0.01)
-        const hasSession = band.columns.some(column => column.key === 'session')
-        const hasWeekly = band.columns.some(column => ['week', 'fable', 'air'].includes(column.key))
-        expect(band.drawing.svg.includes('id="dv"')).toBe(hasSession && hasWeekly)
+    for (const scale of [1.5, 'auto'] as const) {
+      for (const numbers of ['full', 'short', 'off'] as const) {
+        for (let bodyColumns = 30; bodyColumns <= 220; bodyColumns += 1) {
+          if (scale !== 'auto' && bodyColumns * 7.8 < HUD_WIDTH * scale) continue
+          const band = layoutBand(snapshot, { scale, numbers }, { now: NOW, random, bodyColumns })
+          expect(band.drawing.width).toBeLessThanOrEqual(bodyColumns * 7.8 + 0.01)
+          let end = HUD_WIDTH
+          band.columns.forEach((column, i) => {
+            expect(band.columnStarts[i]!).toBeGreaterThan(end)
+            end = band.columnStarts[i]! + columnWidth(column)
+          })
+          expect(end * band.scale).toBeLessThanOrEqual(band.drawing.width + band.scale / 2 + 0.01)
+          const hasSession = band.columns.some(column => column.key === 'session')
+          const hasWeekly = band.columns.some(column => ['week', 'fable', 'air'].includes(column.key))
+          expect(band.drawing.svg.includes('id="dv"')).toBe(hasSession && hasWeekly)
+          band.columns.forEach((column, i) => {
+            if (i === 0 || column.key === 'session') return
+            const previous = band.columns[i - 1]!
+            const gap = (band.columnStarts[i]! - band.columnStarts[i - 1]! - columnWidth(previous)) * band.scale
+            if (previous.key === 'session') {
+              expect(gap).toBeGreaterThanOrEqual((hasWeekly ? 64 : 32) - band.scale)
+            } else {
+              expect(gap).toBe(24)
+            }
+          })
+        }
       }
     }
   })

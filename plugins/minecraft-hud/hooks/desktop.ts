@@ -27,15 +27,17 @@ const COLUMN_LINES = [TOP_ROW, MIDDLE_ROW, XP_BAR_Y] as const
 /** Label and detail a darker grey, the figure a lighter one: all quieter than the sprites. */
 const LABEL_COLOR = 0x808080
 const VALUE_COLOR = 0xc0c0c0
-/** The session-to-weekly rule: label grey, mostly see-through, one sprite pixel wide. */
+/** The session-to-details rule: label grey, mostly see-through, one sprite pixel wide. */
 const DIVIDER_COLOR = LABEL_COLOR
 const DIVIDER_OPACITY = 0.3
 const DIVIDER_TOP = 1
 const DIVIDER_HEIGHT = HUD_HEIGHT - 2
 /** Minimum group spacing in CSS pixels; only group boundaries absorb surplus room. */
 const MIN_GAP_PX = 32
-/** Weekly budgets stay together even in a wide band. */
-const WEEK_GAP_PX = 24
+/** Every column right of the divider belongs to one compact group, including context. */
+const DETAIL_GAP_PX = 24
+/** Enough room for each side of the divider to exceed an internal column gap. */
+const SECTION_GAP_PX = 64
 /** A desktop band cell in CSS pixels (its code font's advance), to turn `bodyColumns` into room. */
 const CELL_PX = 7.8
 
@@ -304,34 +306,29 @@ export function columnWidth(column: HudColumn): number {
 const inkWidth = (column: HudColumn) =>
   Math.max(textWidth(column.label), textWidth(column.value), column.detail === '' ? 0 : textWidth(column.detail)) + 1
 
-const groupOf = (column: HudColumn) =>
-  column.key === 'week' || column.key === 'fable' || column.key === 'air' ? 'weekly' : column.key
+const isWeekly = (column: HudColumn) =>
+  column.key === 'week' || column.key === 'fable' || column.key === 'air'
 
-/** The first column starts a group after the HUD; adjacent weekly columns share a fixed gap. */
+const groupOf = (column: HudColumn) => column.key === 'session' ? 'session' : 'details'
+
+/** Keep the existing rule: no divider for session and context alone. */
+const hasDivider = (columns: readonly HudColumn[]) =>
+  columns.some(column => column.key === 'session') && columns.some(isWeekly)
+
+/** The first column starts a group after the HUD; all right-hand columns share a fixed gap. */
 const startsGroup = (columns: readonly HudColumn[], i: number) =>
   i === 0 || groupOf(columns[i]!) !== groupOf(columns[i - 1]!)
 
 const minimumGaps = (columns: readonly HudColumn[]) =>
-  columns.map((_, i) => startsGroup(columns, i) ? MIN_GAP_PX : WEEK_GAP_PX)
-/** Balance Fable's whitespace without moving week/context or reducing minimum group spacing. */
-function balanceFable(columns: readonly HudColumn[], starts: number[], widths: readonly number[], scale: number) {
-  const i = columns.findIndex(column => column.key === 'fable')
-  if (i < 1 || columns[i - 1]?.key !== 'week' || columns[i + 1]?.key !== 'context') {
-    return
-  }
-  const leftEnd = starts[i - 1]! + widths[i - 1]!
-  const rightStart = starts[i + 1]!
-  const centered = (leftEnd + rightStart - widths[i]!) / 2
-  // Tight bands retain the larger context-group gap rather than forcing optical symmetry.
-  const minimum = leftEnd + WEEK_GAP_PX / scale
-  const maximum = rightStart - widths[i]! - MIN_GAP_PX / scale
-  starts[i] = Math.round(Math.max(minimum, Math.min(centered, maximum)))
-}
+  columns.map((_, i) => {
+    if (!startsGroup(columns, i)) return DETAIL_GAP_PX
+    return i > 0 && hasDivider(columns) ? SECTION_GAP_PX : MIN_GAP_PX
+  })
 
 /** One rule only when both the session and a weekly budget survived fitting. */
 function divider(columns: readonly HudColumn[], starts: readonly number[]) {
   const session = columns.findIndex(column => column.key === 'session')
-  const weekly = columns.findIndex(column => groupOf(column) === 'weekly')
+  const weekly = columns.findIndex(isWeekly)
   if (session < 0 || weekly !== session + 1) {
     return ''
   }
@@ -420,8 +417,8 @@ function fit(wanted: readonly HudColumn[], scale: number, room: number): { colum
  * image reliably; a row of several drew nothing). With `auto` it takes scale 2 where the HUD and
  * every column fit (giving up at most the details another column repeats), else 1.5 with as much as
  * fits there, details before columns, the session last. Inside the image the HUD sits left and the
- * session, weekly budgets and context are spread over the rest (space-between). Only group gaps
- * grow; the weekly block keeps fixed internal gaps. The art stays crisp at the same height.
+ * session and one right-hand detail group are spread over the rest (space-between). Only outer
+ * gaps grow; week/Fable/Sonnet/context keep fixed internal gaps at every width.
  */
 export function layoutBand(
   snapshot: HudSnapshot,
@@ -455,7 +452,6 @@ export function layoutBand(
     starts.push(Math.round(x))
     x += widths[i] ?? 0
   })
-  balanceFable(columns, starts, widths, scale)
   columns.forEach((column, i) => writeColumn(writer, column, starts[i]!))
   const alt = [`Minecraft-HUD: ${hudAlt(snapshot)}`, ...columns.map(column => [column.label, column.value, column.detail].filter(part => part !== '').join(' '))].join(' · ')
   return {

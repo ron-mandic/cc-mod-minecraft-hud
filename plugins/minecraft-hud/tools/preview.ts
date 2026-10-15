@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { layoutBand } from '../hooks/desktop'
 import { fold, terminalBand } from '../hooks/terminal'
 import { rasterize, writePng } from './raster'
-import type { HudSnapshot } from '../types'
+import type { HudScale, HudSnapshot } from '../types'
 
 // a file path, not the URL's pathname: that one is percent-encoded ("Git%20Projects")
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -23,6 +23,11 @@ const LIVE = {
 }
 const SONNET = { ...LIVE, air: { used: 37, model: 'Sonnet', resetsAt: '2026-10-06T22:00:00+00:00' } }
 const MILLION = { ...LIVE, context: { window: 1_000_000, tokens: 684_000, percent: 68.4 } }
+const NARROW = {
+  ...MILLION,
+  session: { used: 0, resetsAt: '2026-10-08T22:20:00Z' },
+  context: { window: 1_000_000, tokens: 370_000, percent: 37 },
+}
 const NEW_CHAT: HudSnapshot = { ...LIVE, context: { window: 1_000_000 } }
 const UNKNOWN: HudSnapshot = { context: LIVE.context, source: 'none' }
 const PARTIAL: HudSnapshot = { ...LIVE, week: undefined }
@@ -31,11 +36,11 @@ const TIGHT = { ...LIVE, week: { ...LIVE.week, used: 86 }, session: { ...LIVE.se
 const PAD = 12
 const CELL = 7.8
 
-const layout = (snapshot: HudSnapshot, width: number) =>
-  layoutBand(snapshot, { scale: 'auto', numbers: 'full' }, { now: NOW, random: Math.random, bodyColumns: Math.floor((width - 2 * PAD) / CELL) })
+const layout = (snapshot: HudSnapshot, width: number, scale: HudScale = 'auto') =>
+  layoutBand(snapshot, { scale, numbers: 'full' }, { now: NOW, random: Math.random, bodyColumns: Math.floor((width - 2 * PAD) / CELL) })
 
-function bandHtml(width: number, snapshot: HudSnapshot, label: string, background = '#262626') {
-  const band = layout(snapshot, width)
+function bandHtml(width: number, snapshot: HudSnapshot, label: string, background = '#262626', scale: HudScale = 'auto') {
+  const band = layout(snapshot, width, scale)
   const d = band.drawing
   const image = `<img alt="" width="${d.width}" height="${d.height}" src="data:image/svg+xml;base64,${Buffer.from(d.svg).toString('base64')}">`
   return (
@@ -52,8 +57,8 @@ function terminalHtml(columns: number) {
 }
 
 /** One band as a PNG at device pixel ratio 2, as the desktop draws its one image. */
-function bandPng(path: string, width: number, snapshot: HudSnapshot = LIVE) {
-  const band = layout(snapshot, width)
+function bandPng(path: string, width: number, snapshot: HudSnapshot = LIVE, scale: HudScale = 'auto') {
+  const band = layout(snapshot, width, scale)
   const dpr = 2
   const image = rasterize(band.drawing.svg, band.scale * dpr, [38, 38, 38])
   const W = width * dpr
@@ -76,6 +81,7 @@ html += bandHtml(770, UNKNOWN, '770 px · Budgets unbekannt') +
   bandHtml(770, PARTIAL, '770 px · nur Woche unbekannt') +
   bandHtml(770, UNKNOWN, '770 px · unbekannt, hell', '#f4f3ef')
 html += bandHtml(770, NEW_CHAT, '770 px · neuer Chat, Kontext startet bei 0')
+for (const width of [590, 680, 770, 1000]) html += bandHtml(width, NARROW, `${width} px · gemeinsame rechte Gruppe`, '#262626', 1.5)
 html += '<p>Terminal, 140 / 100 / 80 / 60 / 40 Spalten</p><pre>' + [140, 100, 80, 60, 40].map(terminalHtml).join('') + '</pre>'
 // beside the README, outside the plugin folder, so an install does not copy it along
 const PREVIEW = join(ROOT, '..', '..', 'docs', 'preview.html')
@@ -87,4 +93,5 @@ if (process.argv.includes('--docs')) {
   bandPng(join(ROOT, '..', '..', 'docs', 'hud-preview-unknown.png'), 770, UNKNOWN)
   bandPng(join(ROOT, '..', '..', 'docs', 'hud-preview-sonnet.png'), 1000, SONNET)
   bandPng(join(ROOT, '..', '..', 'docs', 'hud-preview-new-chat.png'), 770, NEW_CHAT)
+  bandPng(join(ROOT, '..', '..', 'docs', 'hud-preview-narrow-group.png'), 590, NARROW, 1.5)
 }
