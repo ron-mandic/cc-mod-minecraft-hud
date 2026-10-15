@@ -86,7 +86,7 @@ const sourceLine = (snapshot: HudSnapshot, now: number) => {
   return `Quelle: ${from}${when === undefined ? '' : `, ${when}`}` + (snapshot.problem === undefined ? '' : ` · ${snapshot.problem}`)
 }
 
-/** Each bar's line in `/hud`: what it stands for and the exact figures. */
+/** Each bar's detailed explanation for `/hud details`. */
 export type Titles = { hearts: string; armor: string; food: string; air: string; xp: string }
 
 export function titlesOf(snapshot: HudSnapshot, now: number): Titles {
@@ -94,7 +94,7 @@ export function titlesOf(snapshot: HudSnapshot, now: number): Titles {
   const context = snapshot.context
   const xp =
     context?.percent === undefined
-      ? 'XP = Kontextfenster: noch keine Antwort in diesem Fenster'
+      ? 'XP = Kontextfenster: 0 % belegt (noch keine Messung)'
       : `XP = Kontextfenster: ${percent(context.percent)} belegt` +
         (context.tokens === undefined ? '' : ` (${tokens(context.tokens)} von ${tokens(context.window)} Tokens)`)
   return {
@@ -152,24 +152,40 @@ const TERMINAL_WORDS: Record<HudPrefs['terminal'], string> = { compact: 'kompakt
 
 const NUMBER_WORDS: Record<HudPrefs['numbers'], string> = { off: 'aus', short: 'kurz', full: 'voll' }
 
-/** What `/hud` prints: every figure with its meaning, the settings, and the commands. */
-export function card(snapshot: HudSnapshot | null, prefs: HudPrefs, now: number): string {
-  const lines = ['Minecraft-HUD']
+/** Default /hud is a few plain text lines; explanations/settings require an explicit request. */
+export function card(snapshot: HudSnapshot | null, prefs: HudPrefs, now: number, isDetailed = false): string {
   if (snapshot === null) {
-    lines.push('Noch keine Daten.')
-  } else {
-    const titles = titlesOf(snapshot, now)
-    lines.push(
-      `♥ ${titles.hearts.split('\n')[0]}`,
-      `◆ ${titles.armor.split('\n')[0]}`,
-      `● ${titles.food.split('\n')[0]}`,
-      snapshot.air === undefined
-        ? '○ Luft = Sonnet-Wochenlimit: erscheint nur bei bekannten Daten mit Nutzung über 0 %'
-        : `○ ${titles.air.split('\n')[0]}`,
-      `✦ ${titles.xp}`,
-      sourceLine(snapshot, now),
-    )
+    return 'Noch keine Daten.'
   }
+  if (!isDetailed) {
+    const briefLimit = (limit: HudLimit | undefined) => {
+      if (limit === undefined) return 'unbekannt'
+      const clock = resetClock(limit.resetsAt, now)
+      return `${percent(limit.used)} genutzt${clock === undefined ? '' : ` · Reset ${clock}`}`
+    }
+    const context = columnsOf(snapshot, now).find(column => column.key === 'context')!
+    return [
+      ...(prefs.isEnabled ? [] : ['HUD: aus']),
+      `Herzen (Woche): ${briefLimit(snapshot.week)}`,
+      `Rüstung (Fable): ${briefLimit(snapshot.fable)}`,
+      `Hunger (5 Std.): ${briefLimit(snapshot.session)}`,
+      ...(snapshot.air === undefined ? [] : [`Luft (Sonnet): ${briefLimit(snapshot.air)}`]),
+      `Kontext: ${context.value} · ${context.detail}`,
+      ...(snapshot.problem === undefined ? [] : [`Daten: ${snapshot.problem}`]),
+    ].join('\n')
+  }
+  const lines = ['Minecraft-HUD']
+  const titles = titlesOf(snapshot, now)
+  lines.push(
+    titles.hearts.split('\n')[0]!,
+    titles.armor.split('\n')[0]!,
+    titles.food.split('\n')[0]!,
+    snapshot.air === undefined
+      ? 'Luft = Sonnet-Wochenlimit: erscheint nur bei bekannten Daten mit Nutzung über 0 %'
+      : titles.air.split('\n')[0]!,
+    titles.xp,
+    sourceLine(snapshot, now),
+  )
   lines.push(
     '',
     `Einstellungen: HUD hier ${ON_OFF(prefs.isEnabled)}${prefs.isRepoSetting ? ' (für dieses Repo gesetzt)' : ''}` +

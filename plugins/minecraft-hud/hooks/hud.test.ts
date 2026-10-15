@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { HUD_HEIGHT, HUD_WIDTH, bandWidth, columnWidth, drawHud, layoutBand, textWidth } from './desktop'
 import { fold, statusText, terminalBand } from './terminal'
-import { columnsOf, resetClock, resetText, shortTokens, titlesOf } from './text'
+import { card, columnsOf, resetClock, resetText, shortTokens, titlesOf } from './text'
 import { halvesLeft, liveOf, merge, parsePlan, planResultOf } from './usage'
 
 const NOW = Date.parse('2026-10-05T10:00:00Z')
@@ -179,6 +179,34 @@ describe('drawing', () => {
     }
     const off = layoutBand(initial, { scale: 1.5, numbers: 'off' }, { now: NOW, random, bodyColumns: 100 })
     expect(off.columns).toHaveLength(0)
+  })
+
+  test('/hud is short and icon-free, with explanations only on explicit request', () => {
+    const prefs = {
+      isEnabled: true, isRepoSetting: false, repo: '/tmp/repo', terminal: 'compact',
+      scale: 1.5, numbers: 'full', hasWarnings: true, refreshMinutes: 5,
+    } as const
+    const brief = card(snapshot, prefs, NOW)
+    expect(brief.split('\n')).toHaveLength(5)
+    expect(brief).toContain('Hunger (5 Std.): 41 % genutzt')
+    expect(brief).toContain('Kontext: 42 % · 84K / 200K')
+    expect(brief).not.toMatch(/[♥◆●○✦]/)
+    expect(brief).not.toContain('Einstellungen:')
+    expect(brief).not.toContain('Befehle:')
+    expect(brief).not.toContain('Quelle:')
+    const detailed = card(snapshot, prefs, NOW, true)
+    expect(detailed).toContain('Einstellungen:')
+    expect(detailed).toContain('84.000 von 200.000 Tokens')
+    expect(detailed).not.toMatch(/[♥◆●○✦]/)
+    const initial = { ...snapshot, air: undefined, context: { window: 1_000_000 } }
+    const fresh = card(initial, prefs, NOW)
+    expect(fresh.split('\n')).toHaveLength(4)
+    expect(fresh).toContain('Kontext: 0 % · 0 / 1M')
+    const missing = card({ ...initial, week: undefined, problem: 'Budgetdaten veraltet' }, prefs, NOW)
+    expect(missing).toContain('Herzen (Woche): unbekannt')
+    expect(missing).toContain('Daten: Budgetdaten veraltet')
+    expect(card(snapshot, { ...prefs, isEnabled: false }, NOW)).toContain('HUD: aus')
+    expect(card(null, prefs, NOW)).toBe('Noch keine Daten.')
   })
 
   test('tokens in short: K up to a million, then M', () => {
@@ -410,6 +438,13 @@ test('the band draws on every surface the session can show', { timeoutMs: 10_000
   const debug = await $.command.run({ command: 'hud', args: 'debug', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
   expect(debug.text).toContain('Budgetstatus:')
   expect(debug.text).toContain('Sonnet bekannt')
+  const summary = await $.command.run({ command: 'hud', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
+  expect(summary.text).toContain('Hunger (5 Std.):')
+  expect(summary.text).not.toContain('Einstellungen:')
+  expect(summary.text).not.toMatch(/[♥◆●○✦]/)
+  const details = await $.command.run({ command: 'hud', args: 'details', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
+  expect(details.text).toContain('Einstellungen:')
+  expect(details.text).not.toMatch(/[♥◆●○✦]/)
 
   const off = await $.command.run({ command: 'hud', args: 'aus', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
   expect(off.text).toContain('HUD in diesem Repo aus')

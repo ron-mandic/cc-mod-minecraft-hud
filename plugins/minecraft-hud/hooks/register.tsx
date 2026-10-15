@@ -234,7 +234,7 @@ async function afterTurn($: EngineInterface, model: string | undefined) {
   await refresh($, (/fable/i.test(name) ? 1 : 2) * MINUTE)
 }
 
-const HELP = 'Befehle: /hud · /hud an|aus (dieses Repo) · /hud global an|aus · /hud terminal kompakt|status|aus · /hud größe 1|1.5|2|3 · /hud zahlen aus|kurz|voll · /hud warnungen an|aus · /hud refresh · /hud reset'
+const HELP = 'Befehle: /hud · /hud details · /hud debug · /hud an|aus (dieses Repo) · /hud global an|aus · /hud terminal kompakt|status|aus · /hud größe 1|1.5|2|3 · /hud zahlen aus|kurz|voll · /hud warnungen an|aus · /hud refresh · /hud reset'
 
 const TERMINAL_WORDS: Record<string, HudTerminalStyle> = { kompakt: 'compact', compact: 'compact', status: 'status', statuszeile: 'status', aus: 'off', off: 'off' }
 const NUMBER_WORDS: Record<string, HudNumbers> = { aus: 'off', off: 'off', kurz: 'short', short: 'short', voll: 'full', full: 'full' }
@@ -248,6 +248,8 @@ async function runCommand($: EngineInterface, args: string): Promise<string> {
   let reply: string
   if (first === undefined || first === 'status' || first === 'info') {
     return card(await read($, snapshotAtom), prefs, await $.clock.now())
+  } else if (first === 'details') {
+    return card(await read($, snapshotAtom), prefs, await $.clock.now(), true)
   } else if (first === 'hilfe' || first === 'help') {
     return HELP
   } else if (first === 'debug') {
@@ -335,7 +337,7 @@ export const register: Register = (on, pluginOptions) => {
     await $.command.register({
       name: 'hud',
       description: 'Minecraft-HUD: Werte, pro Repo an/aus, Terminal, Größe, Zahlen',
-      argumentHint: '[an|aus|terminal …|größe …|zahlen …|refresh|reset]',
+      argumentHint: '[details|hilfe|an|aus|terminal …|größe …|zahlen …|refresh|reset]',
       immediate: true,
     })
     await setup($)
