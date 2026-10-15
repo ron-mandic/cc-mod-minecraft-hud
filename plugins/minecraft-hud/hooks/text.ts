@@ -68,7 +68,7 @@ const tokens = (value: number) => String(Math.round(value)).replace(/\B(?=(\d{3}
 
 const limitLine = (limit: HudLimit | undefined, now: number) => {
   if (limit === undefined) {
-    return 'keine Daten'
+    return 'unbekannt (keine aktuellen Daten)'
   }
   const clock = resetText(limit.resetsAt, now)
   const reset = until(limit.resetsAt, now)
@@ -101,7 +101,7 @@ export function titlesOf(snapshot: HudSnapshot, now: number): Titles {
     hearts: `Herzen = Wochenlimit (alle Modelle): ${limitLine(snapshot.week, now)}\n${source}`,
     armor: `Rüstung = Fable-Wochenlimit: ${limitLine(snapshot.fable, now)}\n${source}`,
     food: `Hunger = Sitzungslimit (5 Std.): ${limitLine(snapshot.session, now)}\n${source}`,
-    air: snapshot.air === undefined ? '' : `Luft = ${snapshot.air.model}-Wochenlimit: ${limitLine(snapshot.air, now)}\n${source}`,
+    air: snapshot.air === undefined ? '' : `Luft = Sonnet-Wochenlimit: ${limitLine(snapshot.air, now)}\n${source}`,
     xp,
   }
 }
@@ -167,7 +167,7 @@ export function card(snapshot: HudSnapshot | null, prefs: HudPrefs, now: number)
       `◆ ${titles.armor.split('\n')[0]}`,
       `● ${titles.food.split('\n')[0]}`,
       snapshot.air === undefined
-        ? '○ Luft = ein weiteres Modell-Wochenlimit (z. B. Sonnet): erscheint erst, wenn du es nutzt'
+        ? '○ Luft = Sonnet-Wochenlimit: erscheint nur bei bekannten Daten mit Nutzung über 0 %'
         : `○ ${titles.air.split('\n')[0]}`,
       `✦ ${titles.xp}`,
       sourceLine(snapshot, now),

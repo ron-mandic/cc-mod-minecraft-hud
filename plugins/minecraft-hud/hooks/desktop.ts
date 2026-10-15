@@ -111,7 +111,11 @@ export type DrawArgs = {
 }
 
 /** Ten hearts over their containers: the 7-day limit left, jiggling at two hearts or less. */
-function hearts(snapshot: HudSnapshot, { now, random }: DrawArgs) {
+function hearts(snapshot: HudSnapshot, { now, random }: DrawArgs, writer: Writer) {
+  if (snapshot.week === undefined) {
+    writer.write('?', 36, MIDDLE_ROW, LABEL_COLOR)
+    return `<g opacity="0.25">${Array.from({ length: 10 }, (_, i) => use('hc', i * 8, MIDDLE_ROW)).join('')}</g>`
+  }
   const health = halvesLeft(snapshot.week)
   const isLow = snapshot.week !== undefined && health <= 4
   const isHurt = snapshot.hurtAt !== undefined && now - snapshot.hurtAt < BLINK_MS
@@ -150,7 +154,7 @@ function hearts(snapshot: HudSnapshot, { now, random }: DrawArgs) {
       `<g opacity="0">${blink}<animate attributeName="opacity" calcMode="discrete" fill="freeze"` +
       ` dur="${(BLINK_MS / 1000).toFixed(2)}s" values="1;0;1;0;1;0;0"/></g>`
   }
-  return snapshot.week === undefined ? `<g opacity="0.35">${body}</g>` : body
+  return body
 }
 
 /** Ten armour icons: Fable's weekly limit left; gone when nothing is left, as in the game. */
@@ -168,7 +172,11 @@ function armor(snapshot: HudSnapshot) {
 }
 
 /** Ten drumsticks filled from the right: the 5-hour limit left; shaking when it runs low, green when it is gone. */
-function food(snapshot: HudSnapshot, { random }: DrawArgs) {
+function food(snapshot: HudSnapshot, { random }: DrawArgs, writer: Writer) {
+  if (snapshot.session === undefined) {
+    writer.write('?', HUD_WIDTH - 45, MIDDLE_ROW, LABEL_COLOR)
+    return `<g opacity="0.25">${Array.from({ length: 10 }, (_, i) => use('fe', HUD_WIDTH - i * 8 - 9, MIDDLE_ROW)).join('')}</g>`
+  }
   const level = halvesLeft(snapshot.session)
   const isStarving = snapshot.session !== undefined && level === 0
   const isHungry = snapshot.session !== undefined && level <= 4
@@ -192,10 +200,10 @@ function food(snapshot: HudSnapshot, { random }: DrawArgs) {
       body += shank
     }
   }
-  return snapshot.session === undefined ? `<g opacity="0.35">${body}</g>` : body
+  return body
 }
 
-/** Air bubbles over the food: another model's weekly limit, shown only once it is in use (under water). */
+/** Air bubbles over the food: Sonnet's weekly limit, shown only once usage is above zero. */
 function air(snapshot: HudSnapshot, { random }: DrawArgs) {
   if (snapshot.air === undefined) {
     return ''
@@ -253,14 +261,14 @@ const svgOf = (viewWidth: number, scale: number, defs: string, body: string) =>
 
 /** The HUD's sprites, the vanilla layout without the hotbar; its level digits go through `writer`. */
 function hudSprites(snapshot: HudSnapshot, args: DrawArgs, writer: Writer) {
-  return experience(snapshot, writer) + armor(snapshot) + air(snapshot, args) + hearts(snapshot, args) + food(snapshot, args)
+  return experience(snapshot, writer) + armor(snapshot) + air(snapshot, args) + hearts(snapshot, args, writer) + food(snapshot, args, writer)
 }
 
 function hudAlt(snapshot: HudSnapshot) {
   return [
-    `Herzen ${count(halvesLeft(snapshot.week))} von 10`,
+    snapshot.week === undefined ? 'Herzen: Wochenbudget unbekannt' : `Herzen ${count(halvesLeft(snapshot.week))} von 10`,
     snapshot.fable === undefined ? undefined : `Rüstung ${count(halvesLeft(snapshot.fable))} von 10`,
-    `Hunger ${count(halvesLeft(snapshot.session))} von 10`,
+    snapshot.session === undefined ? 'Hunger: Sitzungsbudget unbekannt' : `Hunger ${count(halvesLeft(snapshot.session))} von 10`,
     snapshot.air === undefined ? undefined : `Luft ${Math.floor((100 - snapshot.air.used) / 10)} von 10`,
     snapshot.context?.percent === undefined ? undefined : `XP-Level ${Math.round(snapshot.context.percent)}`,
   ]

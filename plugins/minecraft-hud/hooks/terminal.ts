@@ -59,13 +59,14 @@ const widthOf = (segments: readonly Segment[]) => segments.reduce((sum, segment)
 
 /** The glyph bars in the HUD's order: hearts, armour, the XP bar with its level, food (from the right), air. */
 function bars(snapshot: HudSnapshot): Segment[] {
-  const hearts = bar(halvesLeft(snapshot.week), ['♥', '♥', '♡'], [COLOR.heart, COLOR.heartHalf, COLOR.empty])
+  const unknown = (glyph: string): Segment[] => [{ text: glyph.repeat(4) + '?' + glyph.repeat(5), color: COLOR.empty, isDim: true }]
+  const hearts = snapshot.week === undefined ? unknown('♡') : bar(halvesLeft(snapshot.week), ['♥', '♥', '♡'], [COLOR.heart, COLOR.heartHalf, COLOR.empty])
   const armor =
     snapshot.fable === undefined || halvesLeft(snapshot.fable) === 0
       ? []
       : bar(halvesLeft(snapshot.fable), ['◆', '◈', '◇'], [COLOR.armor, COLOR.armorHalf, COLOR.empty])
   const isStarving = snapshot.session !== undefined && halvesLeft(snapshot.session) === 0
-  const food = bar(halvesLeft(snapshot.session), ['●', '◑', '○'], [COLOR.food, COLOR.food, isStarving ? COLOR.hunger : COLOR.empty], true)
+  const food = snapshot.session === undefined ? unknown('○') : bar(halvesLeft(snapshot.session), ['●', '◑', '○'], [COLOR.food, COLOR.food, isStarving ? COLOR.hunger : COLOR.empty], true)
   const air =
     snapshot.air === undefined
       ? []

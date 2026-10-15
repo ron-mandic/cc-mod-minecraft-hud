@@ -6,6 +6,8 @@ import type { HudContext, HudLimit, HudSnapshot } from '../types'
 export const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage'
 
 const MINUTE = 60_000
+/** Three normal polling intervals without confirmation: do not present cached budgets as current. */
+const MAX_READING_AGE_MS = 15 * MINUTE
 
 /** What one read of the usage endpoint gave. */
 export type PlanReading = {
@@ -104,7 +106,7 @@ export function parsePlan(body: unknown): PlanReading {
   for (const [key, model] of Object.entries(LEGACY_MODEL_KEYS)) {
     const limit = legacy(key)
     if (limit !== undefined) {
-      reading.models[modelKey(model)] ??= limit
+      reading.models[model] ??= limit
     }
   }
   return reading
@@ -177,47 +179,51 @@ export function liveOf(usage: SessionUsage, at: number): LiveReading {
   return live
 }
 
-/** A window whose reset time has passed is empty again until the next reading says otherwise. */
+/** After the reset, the old reading cannot tell us how much the new window has already used. */
 const expire = (limit: HudLimit | undefined, now: number): HudLimit | undefined => {
   if (limit?.resetsAt === undefined) {
     return limit
   }
   const resetsAt = Date.parse(limit.resetsAt)
-  return Number.isFinite(resetsAt) && resetsAt <= now ? { used: 0 } : limit
+  return Number.isFinite(resetsAt) && resetsAt <= now ? undefined : limit
 }
 
 /** Half icons left in a bar of ten (0 to 20), as Minecraft rounds health: up. */
 export const halvesLeft = (limit: HudLimit | undefined) =>
-  limit === undefined ? 20 : Math.min(20, Math.max(0, Math.ceil(Math.round((100 - limit.used) * 10) / 50)))
+  limit === undefined ? 0 : Math.min(20, Math.max(0, Math.ceil(Math.round((100 - limit.used) * 10) / 50)))
 
 /**
  * Merges the endpoint's reading and the session's into what the HUD draws: per window the newer
  * reading wins (`live.at` is 0 when the session's figures are of unknown age, as after a reload).
  */
 export function merge(plan: PlanCache | undefined, live: LiveReading, previous: HudSnapshot | null, now: number): HudSnapshot {
-  const reading = plan?.reading
+  const isFresh = (at: number) => at > 0 && now - at <= MAX_READING_AGE_MS
+  const isPlanStale = plan?.reading !== undefined && !isFresh(plan.at)
+  const reading = isPlanStale ? undefined : plan?.reading
   const planAt = reading === undefined ? 0 : (plan?.at ?? 0)
-  const hasLive = live.session !== undefined || live.week !== undefined || Object.keys(live.models).length > 0
+  const currentLive = isFresh(live.at) ? live : { ...live, session: undefined, week: undefined, models: {} }
+  const hasLive = currentLive.session !== undefined || currentLive.week !== undefined || Object.keys(currentLive.models).length > 0
   const liveAt = hasLive ? live.at : 0
   const isLiveNewer = reading === undefined || liveAt > planAt
   const pick = (fromLive: HudLimit | undefined, fromPlan: HudLimit | undefined) =>
     expire(isLiveNewer ? (fromLive ?? fromPlan) : (fromPlan ?? fromLive), now)
   const models: Record<string, HudLimit> = isLiveNewer
-    ? { ...familyModels(reading?.models ?? {}), ...familyModels(live.models) }
-    : { ...familyModels(live.models), ...familyModels(reading?.models ?? {}) }
+    ? { ...familyModels(reading?.models ?? {}), ...familyModels(currentLive.models) }
+    : { ...familyModels(currentLive.models), ...familyModels(reading?.models ?? {}) }
   const fableName = Object.keys(models).find(name => /fable/i.test(name))
   const airName = Object.keys(models)
     .find(name => /sonnet/i.test(name) && (expire(models[name], now)?.used ?? 0) > 0)
   const air = airName === undefined ? undefined : expire(models[airName], now)
   const snapshot: HudSnapshot = {
-    session: pick(live.session, reading?.session),
-    week: pick(live.week, reading?.week),
+    session: pick(currentLive.session, reading?.session),
+    week: pick(currentLive.week, reading?.week),
     fable: fableName === undefined ? undefined : expire(models[fableName], now),
     air: air === undefined ? undefined : { ...air, model: 'Sonnet' },
     context: live.context,
     source: reading !== undefined ? 'endpoint' : hasLive ? 'session' : 'none',
     readAt: Math.max(planAt, liveAt) || undefined,
-    problem: plan?.problem,
+    problem: [plan?.problem, isPlanStale ? 'Budgetdaten älter als 15 Minuten; aktuelle Bestätigung fehlt' : undefined]
+      .filter(part => part !== undefined).join(' · ') || undefined,
     hurtAt: previous?.hurtAt,
     hurtFrom: previous?.hurtFrom,
     healAt: previous?.healAt,

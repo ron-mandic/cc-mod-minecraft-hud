@@ -61,6 +61,29 @@ describe('usage', () => {
     expect(merge({ at: NOW, reading }, { at: 0, models: {} }, null, NOW).air?.used).toBe(100)
   })
 
+  test('old readings become unknown, with fresh session readings preserved', () => {
+    const live = { at: 0, models: {}, context: { window: 200_000, tokens: 84_000, percent: 42 } }
+    const old = { at: NOW - 16 * 60_000, reading: parsePlan(ENDPOINT_BODY) }
+    const stale = merge(old, live, null, NOW)
+    expect(stale.session).toBeUndefined()
+    expect(stale.week).toBeUndefined()
+    expect(stale.fable).toBeUndefined()
+    expect(stale.air).toBeUndefined()
+    expect(stale.context?.percent).toBe(42)
+    expect(stale.problem).toContain('15 Minuten')
+    const fresh = merge(old, { ...live, at: NOW, session: { used: 8 } }, null, NOW)
+    expect(fresh.session?.used).toBe(8)
+    expect(fresh.week).toBeUndefined()
+    const recovered = merge({ ...old, at: NOW }, live, stale, NOW)
+    expect(recovered.week?.used).toBe(32)
+    expect(recovered.problem).toBeUndefined()
+    expect(recovered.healAt).toBeUndefined()
+    const unknownAge = merge(undefined, { ...live, week: { used: 0 } }, null, NOW)
+    expect(unknownAge.week).toBeUndefined()
+    const expired = merge({ at: NOW, reading: { session: { used: 5, resetsAt: new Date(NOW - 1).toISOString() }, models: {} } }, live, null, NOW)
+    expect(expired.session).toBeUndefined()
+  })
+
   test('falls back to the older top-level windows', () => {
     const reading = parsePlan({ five_hour: { utilization: 12.5, resets_at: IN_2H }, seven_day_overage_included: { utilization: 8.2 } })
     expect(reading.session?.used).toBe(12.5)
@@ -76,13 +99,14 @@ describe('usage', () => {
   })
 
   test('rounds health up, as the game does', () => {
+    expect(halvesLeft(undefined)).toBe(0)
     expect(halvesLeft({ used: 0 })).toBe(20)
     expect(halvesLeft({ used: 32 })).toBe(14)
     expect(halvesLeft({ used: 99.9 })).toBe(1)
     expect(halvesLeft({ used: 100 })).toBe(0)
   })
 
-  test('merges: Fable is armour, Sonnet is air, a passed reset refills, a drop hurts', () => {
+  test('merges: Fable is armour, Sonnet is air, a passed reset is unknown, a drop hurts', () => {
     const plan = { at: NOW - 60_000, reading: parsePlan(ENDPOINT_BODY) }
     const live = liveOf({ startedAt: 0, context: { window: 200_000, tokens: 84_000, percent: 42 }, rateLimits: [] }, 0)
     const first = merge(plan, live, null, NOW)
@@ -95,7 +119,7 @@ describe('usage', () => {
     expect(second.hurtAt).toBe(NOW)
     expect(second.hurtFrom).toBe(14)
     const afterReset = merge(plan, live, first, Date.parse(IN_2H) + 1)
-    expect(afterReset.session).toEqual({ used: 0 })
+    expect(afterReset.session).toBeUndefined()
   })
 })
 
@@ -274,6 +298,30 @@ describe('drawing', () => {
     }
   })
 
+  test('unknown budgets are unfilled, still and explicitly marked, unlike exhausted budgets', () => {
+    const unknown = { ...snapshot, session: undefined, week: undefined, fable: undefined, air: undefined }
+    const hud = drawHud(unknown, { scale: 1.5, now: NOW, random })
+    expect(hud.svg).not.toContain('href="#hf"')
+    expect(hud.svg).not.toContain('href="#ff"')
+    expect(hud.svg).not.toContain('href="#feh"')
+    expect(hud.svg).not.toContain('animateTransform')
+    expect(hud.svg).toContain('opacity="0.25"')
+    expect(hud.svg).toContain('href="#t63"') // visible ? in each unknown bar
+    expect(hud.alt).toContain('Wochenbudget unbekannt')
+    expect(hud.alt).toContain('Sitzungsbudget unbekannt')
+    expect(titlesOf(unknown, NOW).hearts).toContain('unbekannt')
+    const terminal = terminalBand(unknown, 140, NOW, false)
+    const words = terminal.left.map(segment => segment.text).join('')
+    expect(words).toContain('♡♡♡♡?♡♡♡♡♡')
+    expect(words).toContain('○○○○?○○○○○')
+    expect(words).not.toContain('♥')
+    expect(words).not.toContain('●')
+    const full = drawHud({ ...unknown, week: { used: 0 }, session: { used: 0 } }, { scale: 1.5, now: NOW, random })
+    expect(full.svg).toContain('href="#hf"')
+    expect(full.svg).toContain('href="#ff"')
+    expect(full.svg).not.toContain('href="#t63"')
+  })
+
   test('low health jiggles and an empty session starves', () => {
     const low = { ...snapshot, week: { used: 85 }, session: { used: 100 } }
     const hud = drawHud(low, { scale: 1, now: NOW, random })
@@ -334,6 +382,9 @@ test('the band draws on every surface the session can show', { timeoutMs: 10_000
   const terminal = await $.ui.mount({ plugin: 'minecraft-hud', surface: 'terminal', component: 'AbovePrompt', props: BAND_PROPS })
   expect(await terminal.find({ type: 'Text', text: /♥/ })).toBeDefined()
   await terminal.unmount()
+  const debug = await $.command.run({ command: 'hud', args: 'debug', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
+  expect(debug.text).toContain('Budgetstatus:')
+  expect(debug.text).toContain('Sonnet bekannt')
 
   const off = await $.command.run({ command: 'hud', args: 'aus', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } })
   expect(off.text).toContain('HUD in diesem Repo aus')

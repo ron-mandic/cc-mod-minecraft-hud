@@ -252,11 +252,13 @@ async function runCommand($: EngineInterface, args: string): Promise<string> {
     return HELP
   } else if (first === 'debug') {
     const plan = planOf(await $.store.get('plan'))
+    const snapshot = await read($, snapshotAtom)
     const now = await $.clock.now()
     const age = (at: number | undefined) => (at === undefined ? '–' : `vor ${Math.round((now - at) / 1000)} s`)
     return [
       `Endpoint: ${plan === undefined ? 'noch nie gefragt' : `zuletzt gelesen ${age(plan.reading === undefined ? undefined : plan.at)}`}`,
       `Felder: ${plan?.shape ?? '–'}`,
+      `Budgetstatus: ${snapshot?.problem ?? 'kein gemeldetes Datenproblem'} · Woche ${snapshot?.week === undefined ? '?' : 'bekannt'} · Sitzung ${snapshot?.session === undefined ? '?' : 'bekannt'} · Fable ${snapshot?.fable === undefined ? '?' : 'bekannt'} · Sonnet ${snapshot?.air === undefined ? 'nicht eingeblendet' : 'bekannt'}`,
       `Problem: ${plan?.problem ?? 'keins'}${plan?.retryAt !== undefined && plan.retryAt > now ? ` · nächster Versuch in ${Math.round((plan.retryAt - now) / 1000)} s` : ''}`,
       `Sitzungswerte: ${live.at === 0 ? 'unbekannten Alters' : age(live.at)} · ${[live.session && 'five_hour', live.week && 'seven_day', ...Object.keys(live.models)].filter(Boolean).join(', ') || 'keine Limits'}`,
       `Repo-Schlüssel: ${prefs.repo}`,
