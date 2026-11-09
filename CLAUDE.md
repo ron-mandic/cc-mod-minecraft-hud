@@ -59,7 +59,7 @@ Icons show what is left, rounded up like health. Text columns show what is used.
 
 | File | Role |
 | :- | :- |
-| `hooks/register.tsx` | All hooks and all `$` use: session start, measure, turn end, `/hud`, `ui.render` AbovePrompt, endpoint fetch, prefs, warnings |
+| `hooks/register.tsx` | All hooks and all `$` use: session start and end, measure, turn end, `/hud`, `ui.render` AbovePrompt, endpoint fetch, prefs, warnings |
 | `hooks/usage.ts` | Pure. `parsePlan` reads endpoint JSON and normalizes versioned family names, `liveOf` reads `$.session.usage()`, `merge` uses fresh readings and discards reset-expired windows, `halvesLeft` |
 | `hooks/desktop.ts` | Pure. SVG strings: `drawHud` (sprites, SMIL animations), `drawColumn` (Minecraft-font text), `layoutBand` (scale + which columns fit; `GIVE_UP`, `LARGE_ENOUGH`, `CELL_PX`, `MIN_GAP_PX`) |
 | `hooks/terminal.ts` | Pure. `terminalBand` (glyph bars left, words right, by priority), `statusText` |
@@ -93,7 +93,9 @@ Icons show what is left, rounded up like health. Text columns show what is used.
 - **`CELL_PX = 7.8`** turns `bodyColumns` into CSS px. It is an estimate: `/hud debug` shows the real cell count; adjust if columns drop too early or wrap.
 - **Validator rule.** Every function that receives `$` must be a top-level function in `register.tsx`, because the validator traces `$`. Helpers in other files stay pure.
 - **Engine rules.** No `$.state.set` while rendering. Promises nobody awaits go through `background()`.
-- **Tests.** Every `$` call beneath the plugin needs an answer, `on('noun.method', () => ({ value }))`, including `session.start` and `ui.render`. `$.session.authorize` works only once the plugin's scan allows it.
+- **Session switches.** `/clear`, `/resume` and `/branch` go on under another session id with no new `session.start`; `$.state` is the session's, so the mod expects it empty there. `revive` runs `setup` again when `$.session.id()` differs from the one `setup` last saw or the prefs are missing. It is asked 1 s after `session.end` (`clear`, `resume`), on every `session.measure` and on the minute's beat.
+- **No `classic.*` hooks.** For Team and Enterprise organizations, and on machines with managed settings, the built-in `cc-plugin-sec-default` sits above every installed plugin and passes all `classic.*` events by them (`next.to`). Until 0.2.13 the re-setup hung on `classic.SessionStart`, so there `setup` never ran again after a `/clear`, and sessions reported `its classic.SessionStart hook was skipped`. The last test seats such a plugin above the mod.
+- **Tests.** Every `$` call beneath the plugin needs an answer, `on('noun.method', () => ({ value }))`, including `session.start`, `session.id` and `ui.render`. `$.session.authorize` works only once the plugin's scan allows it.
 
 ## Workflow
 
@@ -124,3 +126,4 @@ When removing local files, move them to `~/.Trash` rather than deleting them out
 - `extra_usage` (paid overage) is not drawn. Golden absorption hearts would fit.
 - No terminal sprite mode (`Image` and kitty graphics) yet; the terminal shows glyphs only.
 - `CELL_PX` is not yet measured on the desktop.
+- The re-setup after `/clear`, `/resume` and `/branch` is covered by the test kit only, not yet watched in the desktop app.
