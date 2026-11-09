@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
-import { HUD_HEIGHT, HUD_WIDTH, bandWidth, columnWidth, drawHud, layoutBand, textWidth } from './desktop'
+import { CELL_PX, ENGINE_CELLS, HUD_HEIGHT, HUD_WIDTH, bandWidth, columnWidth, drawHud, layoutBand, roomOf, textWidth } from './desktop'
 import { fold, statusText, terminalBand } from './terminal'
 import { card, columnsOf, resetClock, resetText, shortTokens, titlesOf } from './text'
 import { halvesLeft, liveOf, merge, parsePlan, planResultOf } from './usage'
@@ -9,6 +9,8 @@ import { halvesLeft, liveOf, merge, parsePlan, planResultOf } from './usage'
 const NOW = Date.parse('2026-10-05T10:00:00Z')
 const IN_2H = '2026-10-05T12:13:00Z'
 const IN_3D = '2026-10-08T09:00:00Z'
+/** The cells a desktop band reports for a room of `px` CSS pixels, for the cases that mean a width. */
+const cellsFor = (px: number) => Math.floor(px / CELL_PX) - ENGINE_CELLS
 
 /** The endpoint's answer as the community has seen it: legacy windows, and the `limits` list. */
 const ENDPOINT_BODY = {
@@ -248,7 +250,7 @@ describe('drawing', () => {
   test('a wide band gets scale 2 and everything; a narrower one 1.5; a narrow one gives up by rank', () => {
     const prefs = { scale: 'auto', numbers: 'full' } as const
     const all = columnsOf(snapshot, NOW)
-    const wide = layoutBand(snapshot, prefs, { now: NOW, random, bodyColumns: Math.ceil(bandWidth(all, 2) / 7.8) })
+    const wide = layoutBand(snapshot, prefs, { now: NOW, random, bodyColumns: Math.ceil(bandWidth(all, 2) / CELL_PX) - ENGINE_CELLS })
     expect(wide.scale).toBe(2)
     expect(wide.columns).toHaveLength(5)
     const middle = layoutBand(snapshot, prefs, { now: NOW, random, bodyColumns: 100 })
@@ -257,8 +259,8 @@ describe('drawing', () => {
     expect(narrow.scale).toBe(1.5)
     expect(narrow.columns.map(column => column.label)).toEqual(['Sitzung', 'Kontext'])
     // one image as wide as the band, the columns spread inside it
-    expect(narrow.drawing.width).toBeLessThanOrEqual(60 * 7.8)
-    expect(narrow.drawing.width).toBeGreaterThan(60 * 7.8 - 2)
+    expect(narrow.drawing.width).toBeLessThanOrEqual(roomOf(60))
+    expect(narrow.drawing.width).toBeGreaterThan(roomOf(60) - 2)
     const fixed = layoutBand(snapshot, { scale: 3, numbers: 'off' }, { now: NOW, random, bodyColumns: 200 })
     expect(fixed.scale).toBe(3)
     expect(fixed.columns).toHaveLength(0)
@@ -278,7 +280,7 @@ describe('drawing', () => {
         expect(band.drawing.svg).not.toContain('id="dv"')
       }
     }
-    const narrow = layoutBand(snapshot, { scale: 1.5, numbers: 'full' }, { now: NOW, random, bodyColumns: 38 })
+    const narrow = layoutBand(snapshot, { scale: 1.5, numbers: 'full' }, { now: NOW, random, bodyColumns: cellsFor(300) })
     expect(narrow.columns).toHaveLength(0)
     expect(narrow.drawing.svg).toContain('id="hud-centered"')
     const normal = layoutBand(snapshot, { scale: 1.5, numbers: 'full' }, { now: NOW, random, bodyColumns: 100 })
@@ -312,17 +314,23 @@ describe('drawing', () => {
     const off = layoutBand(snapshot, { scale: 2, numbers: 'off' }, { now: NOW, random, bodyColumns: 100 })
     expect(off.drawing.svg).not.toContain('id="dv"')
   })
-  test('all right-hand gaps stay compact at wide widths; only outer gaps grow', () => {
+  test('the columns stay one compact block at wide widths; only the gap after the HUD grows', () => {
+    const afterHud: number[] = []
     for (const bodyColumns of [200, 260]) {
       const band = layoutBand(snapshot, { scale: 2, numbers: 'full' }, { now: NOW, random, bodyColumns })
       const gapAfter = (i: number) =>
         (band.columnStarts[i + 1]! - band.columnStarts[i]! - columnWidth(band.columns[i]!)) * band.scale
+      expect(gapAfter(0)).toBe(64) // session -> weekly, the rule inside: as close as in a narrow band
       expect(gapAfter(1)).toBe(24) // week -> Fable
       expect(gapAfter(2)).toBe(24) // Fable -> Sonnet
-      expect(gapAfter(0)).toBeGreaterThan(gapAfter(1)) // session -> weekly
       expect(gapAfter(3)).toBe(24) // Sonnet -> context stays inside the same group
-      expect(gapAfter(0)).toBeGreaterThanOrEqual(64)
+      // the block ends where the image ends, and the room left over stands after the HUD
+      const last = band.columns.length - 1
+      expect((band.columnStarts[last]! + columnWidth(band.columns[last]!)) * band.scale).toBeGreaterThan(band.drawing.width - band.scale)
+      afterHud.push((band.columnStarts[0]! - HUD_WIDTH) * band.scale)
     }
+    expect(afterHud[0]).toBeGreaterThan(64)
+    expect(afterHud[1]).toBeGreaterThan(afterHud[0]! + 400)
   })
 
   test('a screenshot-sized 1M band separates week from Fable without losing its reset', () => {
@@ -331,7 +339,7 @@ describe('drawing', () => {
       air: undefined,
       context: { window: 1_000_000, tokens: 785_000, percent: 79 },
     }
-    const band = layoutBand(reading, { scale: 'auto', numbers: 'full' }, { now: NOW, random, bodyColumns: 96 })
+    const band = layoutBand(reading, { scale: 'auto', numbers: 'full' }, { now: NOW, random, bodyColumns: cellsFor(750) })
     expect(band.scale).toBe(1.5)
     expect(band.columns.map(column => column.key)).toEqual(['session', 'week', 'fable', 'context'])
     expect(band.columns[1]?.detail).toMatch(RESET)
@@ -364,7 +372,7 @@ describe('drawing', () => {
       session: { used: 0, resetsAt: IN_3D }, fable: { used: 0, resetsAt: IN_3D },
       context: { window: 1_000_000, tokens: 370_000, percent: 37 },
     }
-    const band = layoutBand(reading, { scale: 1.5, numbers: 'full' }, { now: NOW, random, bodyColumns: 72 })
+    const band = layoutBand(reading, { scale: 1.5, numbers: 'full' }, { now: NOW, random, bodyColumns: cellsFor(562) })
     expect(band.columns.map(column => column.key)).toEqual(['session', 'fable', 'context'])
     const internal = (band.columnStarts[2]! - band.columnStarts[1]! - columnWidth(band.columns[1]!)) * band.scale
     expect(internal).toBe(24)
@@ -380,9 +388,9 @@ describe('drawing', () => {
     for (const scale of [1.5, 'auto'] as const) {
       for (const numbers of ['full', 'short', 'off'] as const) {
         for (let bodyColumns = 30; bodyColumns <= 220; bodyColumns += 1) {
-          if (scale !== 'auto' && bodyColumns * 7.8 < HUD_WIDTH * scale) continue
+          if (scale !== 'auto' && roomOf(bodyColumns) < HUD_WIDTH * scale) continue
           const band = layoutBand(snapshot, { scale, numbers }, { now: NOW, random, bodyColumns })
-          expect(band.drawing.width).toBeLessThanOrEqual(bodyColumns * 7.8 + 0.01)
+          expect(band.drawing.width).toBeLessThanOrEqual(roomOf(bodyColumns) + 0.01)
           let end = HUD_WIDTH
           band.columns.forEach((column, i) => {
             expect(band.columnStarts[i]!).toBeGreaterThan(end)

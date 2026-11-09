@@ -5,7 +5,7 @@ import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { layoutBand } from '../hooks/desktop'
+import { CELL_PX, ENGINE_CELLS, layoutBand } from '../hooks/desktop'
 import { fold, terminalBand } from '../hooks/terminal'
 import { rasterize, writePng } from './raster'
 import type { HudNumbers, HudScale, HudSnapshot } from '../types'
@@ -32,12 +32,11 @@ const NEW_CHAT: HudSnapshot = { ...LIVE, context: { window: 1_000_000 } }
 const UNKNOWN: HudSnapshot = { context: LIVE.context, source: 'none' }
 const PARTIAL: HudSnapshot = { ...LIVE, week: undefined }
 const TIGHT = { ...LIVE, week: { ...LIVE.week, used: 86 }, session: { ...LIVE.session, used: 83 }, context: { window: 200000, tokens: 182000, percent: 91 } }
-/** The desktop band's padding and its cell width in CSS px, as desktop.ts assumes it (CELL_PX). */
+/** The desktop band's padding in CSS px. Its cells are desktop.ts's (CELL_PX), less the engine's five, as the desktop reports them. */
 const PAD = 12
-const CELL = 7.8
 
 const layout = (snapshot: HudSnapshot, width: number, scale: HudScale = 'auto', numbers: HudNumbers = 'full') =>
-  layoutBand(snapshot, { scale, numbers }, { now: NOW, random: Math.random, bodyColumns: Math.floor((width - 2 * PAD) / CELL) })
+  layoutBand(snapshot, { scale, numbers }, { now: NOW, random: Math.random, bodyColumns: Math.floor((width - 2 * PAD) / CELL_PX) - ENGINE_CELLS })
 
 function bandHtml(width: number, snapshot: HudSnapshot, label: string, background = '#262626', scale: HudScale = 'auto', numbers: HudNumbers = 'full') {
   const band = layout(snapshot, width, scale, numbers)

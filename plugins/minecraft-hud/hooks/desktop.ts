@@ -32,14 +32,26 @@ const DIVIDER_COLOR = LABEL_COLOR
 const DIVIDER_OPACITY = 0.3
 const DIVIDER_TOP = 1
 const DIVIDER_HEIGHT = HUD_HEIGHT - 2
-/** Minimum group spacing in CSS pixels; only group boundaries absorb surplus room. */
+/** The least room after the HUD in CSS pixels, the one gap that absorbs surplus room; also the fixed gap between session and context where no rule stands. */
 const MIN_GAP_PX = 32
 /** Every column right of the divider belongs to one compact group, including context. */
 const DETAIL_GAP_PX = 24
 /** Enough room for each side of the divider to exceed an internal column gap. */
 const SECTION_GAP_PX = 64
-/** A desktop band cell in CSS pixels (its code font's advance), to turn `bodyColumns` into room. */
-const CELL_PX = 7.8
+/**
+ * A desktop band cell in CSS pixels (its code font's advance), to turn `bodyColumns` into room.
+ * Read off desktop screenshots: a band of 85 cells, the engine's own five beside them, fills a
+ * panel 752 px wide inside its padding, so a cell is 8.27 to 8.36 px.
+ */
+export const CELL_PX = 8.35
+/**
+ * Cells the engine keeps at the band's right end for its `[-]` and leaves out of `bodyColumns`.
+ * The desktop draws nothing there, so the image runs on under them, up to the panel's padding.
+ */
+export const ENGINE_CELLS = 5
+
+/** The CSS pixels the band's image may take where the engine lays its tree out in `bodyColumns` cells. */
+export const roomOf = (bodyColumns: number) => (bodyColumns + ENGINE_CELLS) * CELL_PX
 
 const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`
 
@@ -417,15 +429,15 @@ function fit(wanted: readonly HudColumn[], scale: number, room: number): { colum
  * image reliably; a row of several drew nothing). With `auto` it takes scale 2 where the HUD and
  * every column fit (giving up at most the details another column repeats), else 1.5 with as much as
  * fits there, details before columns, the session last. Inside the image the HUD sits left and the
- * session and one right-hand detail group are spread over the rest (space-between). Only outer
- * gaps grow; week/Fable/Sonnet/context keep fixed internal gaps at every width.
+ * columns right, as one block (space-between of the two). Only the gap after the HUD grows; the
+ * session, the rule and week/Fable/Sonnet/context keep their fixed gaps at every width.
  */
 export function layoutBand(
   snapshot: HudSnapshot,
   prefs: Pick<HudPrefs, 'scale' | 'numbers'>,
   args: Omit<DrawArgs, 'scale'> & { bodyColumns: number },
 ): BandLayout {
-  const room = args.bodyColumns > 0 ? args.bodyColumns * CELL_PX : Infinity
+  const room = args.bodyColumns > 0 ? roomOf(args.bodyColumns) : Infinity
   const wanted =
     prefs.numbers === 'off' ? [] : columnsOf(snapshot, args.now).map(column => (prefs.numbers === 'short' ? { ...column, detail: '' } : column))
   let scale: number = prefs.scale === 'auto' ? 2 : prefs.scale
@@ -441,14 +453,15 @@ export function layoutBand(
   const minimumWidth = content + gaps.reduce((sum, gap) => sum + gap, 0)
   // The image fills known room; unknown room uses minimum gaps. Round once, not per gap.
   const viewWidth = Number.isFinite(room) ? Math.max(minimumWidth, Math.floor(room / scale)) : minimumWidth
-  const groups = columns.filter((_, i) => startsGroup(columns, i)).length
-  const extra = groups === 0 ? 0 : (viewWidth - minimumWidth) / groups
+  // The whole surplus goes after the HUD: the columns stay one block at the right edge, the
+  // session, the rule and the details as close as in the narrowest band that holds them.
+  const extra = viewWidth - minimumWidth
   const writer = new Writer()
   const sprites = hudSprites(snapshot, { ...args, scale }, writer)
   let x = HUD_WIDTH
   const starts: number[] = []
   columns.forEach((column, i) => {
-    x += (gaps[i] ?? 0) + (startsGroup(columns, i) ? extra : 0)
+    x += (gaps[i] ?? 0) + (i === 0 ? extra : 0)
     starts.push(Math.round(x))
     x += widths[i] ?? 0
   })
