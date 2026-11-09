@@ -13,6 +13,8 @@ const snapshotAtom = atom({ plugin: 'minecraft-hud', key: 'snapshot' } as const,
 const prefsAtom = atom({ plugin: 'minecraft-hud', key: 'prefs' } as const, null)
 
 const MINUTE = 60_000
+/** How long after a /clear or /resume ended the old session the HUD sets up for the one that follows. */
+const SWITCH_MS = 1000
 const BLINK_MS = 1100
 const WAVE_MS = 3000
 /** From this share used of a plan window on, the HUD warns once per window. */
@@ -52,6 +54,8 @@ const pickOne = <T,>(value: unknown, allowed: readonly T[], fallback: T): T =>
 let options: PluginOptions = {}
 let live: LiveReading = { at: 0, models: {} }
 let isFetching = false
+/** The session `setup` last ran for: a /clear, /resume or /branch goes on under another id. */
+let sessionId: string | undefined
 /** What the band last drew, or why it could not, for `/hud debug`. */
 let lastDrawn: { at: number; surface: string; images: number; scale: number; columns: number } | undefined
 let lastDrawError: string | undefined
@@ -205,6 +209,7 @@ function background($: EngineInterface, work: Promise<unknown>) {
 
 /** Everything a fresh session needs, and a /clear, /resume or /branch too (they empty $.state). */
 async function setup($: EngineInterface) {
+  sessionId = await $.session.id()
   const prefs = await loadPrefs($)
   await update($, prefsAtom, () => prefs)
   live = { ...liveOf(await $.session.usage(), 0), at: 0 }
@@ -212,8 +217,22 @@ async function setup($: EngineInterface) {
   background($, refresh($, prefs.refreshMinutes * MINUTE))
 }
 
+/**
+ * Sets up again once the process has gone on under another session, or `$.state` is empty: a
+ * /clear, /resume or /branch brings no new session.start. Asked from the beat, each measurement
+ * and after `session.end`, never from a `classic.*` hook: where a plugin above passes those
+ * events by (the built-in security default does, for an organization), such a hook never runs.
+ */
+async function revive($: EngineInterface) {
+  const isSameSession = (await $.session.id()) === sessionId
+  if (!isSameSession || (await read($, prefsAtom)) === null) {
+    await setup($)
+  }
+}
+
 /** The timer's beat: a new endpoint read when the shared one is due, else a redraw for the countdowns. */
 async function beat($: EngineInterface) {
+  await revive($)
   const prefs = await read($, prefsAtom)
   if (prefs?.isEnabled === true) {
     await refresh($, prefs.refreshMinutes * MINUTE)
@@ -222,6 +241,7 @@ async function beat($: EngineInterface) {
 
 /** Takes the session's own figures, pushed after every main-thread turn and whenever a window moves a point. */
 async function measure($: EngineInterface, usage: Parameters<typeof liveOf>[0]) {
+  await revive($)
   const now = await $.clock.now()
   const fresh = liveOf(usage, now)
   live = usage.rateLimits.length > 0 ? fresh : { ...live, context: fresh.context }
@@ -345,10 +365,13 @@ export const register: Register = (on, pluginOptions) => {
     return next(e)
   })
 
-  // /clear, /resume and /branch empty $.state without a new session.start
-  on('classic.SessionStart', { source: ['clear', 'resume', 'fork'] }, async ($, e, next) => {
-    await setup($)
-    return next(e)
+  // /clear and /resume end the session and go on under another, with no session.start for it:
+  // set up for that one once the engine has switched (the beat and the next measurement catch
+  // what this misses, a /branch included)
+  on('session.end', { reason: ['clear', 'resume'] }, async ($, e, next) => {
+    const ended = await next(e)
+    $.clock.after(SWITCH_MS, () => background($, revive($)))
+    return ended
   })
 
   on('session.measure', async ($, e, next) => {

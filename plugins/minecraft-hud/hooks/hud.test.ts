@@ -1,3 +1,4 @@
+import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { HUD_HEIGHT, HUD_WIDTH, bandWidth, columnWidth, drawHud, layoutBand, textWidth } from './desktop'
@@ -451,9 +452,11 @@ describe('drawing', () => {
 
 const BAND_PROPS = { hasSurvey: false, isWorking: false, maxRows: 12, bodyColumns: 100, scroll: { offset: 0, bodyRows: 12 }, view: {} }
 
-test('the band draws on every surface the session can show', { timeoutMs: 10_000 }, async ($, on) => {
+/** Stands for the engine beneath the plugin. `session` is the one the process is in: a test moves it on to play a /clear. */
+function engine(on: On, session: { id: string; tokens: number }) {
   mock.store(on)
-  mock.clock(on, { now: NOW })
+  const clock = mock.clock(on, { now: NOW })
+  on('session.id', () => ({ value: session.id }))
   on('session.repo', () => ({ value: { root: '/tmp/repo', remote: null, internal: false, name: null } }))
   on('session.root', () => ({ value: '/tmp/repo' }))
   on('session.surfaces', () => ({ value: ['desktop'] }))
@@ -461,7 +464,7 @@ test('the band draws on every surface the session can show', { timeoutMs: 10_000
   on('session.usage', () => ({
     value: {
       startedAt: 0,
-      context: { window: 200_000, tokens: 84_000, percent: 42 },
+      context: { window: 200_000, tokens: session.tokens, percent: session.tokens / 2000 },
       rateLimits: [{ kind: 'five_hour', percentUsed: 41, resetsAt: IN_2H }],
     },
   }))
@@ -474,6 +477,11 @@ test('the band draws on every surface the session can show', { timeoutMs: 10_000
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   // the engine's own band, beneath the plugin: empty here
   on('ui.render', ($, e) => $.ui.resolve(e).Box({ children: [] }))
+  return clock
+}
+
+test('the band draws on every surface the session can show', { timeoutMs: 10_000 }, async ($, on) => {
+  engine(on, { id: 'first', tokens: 84_000 })
   await $.session.start({ cwd: '/tmp/repo', surface: 'desktop', isInteractive: true })
 
   const desktop = await $.ui.mount({ plugin: 'minecraft-hud', surface: 'desktop', component: 'AbovePrompt', props: BAND_PROPS })
@@ -507,4 +515,65 @@ test('the band draws on every surface the session can show', { timeoutMs: 10_000
   const hidden = await $.ui.mount({ plugin: 'minecraft-hud', surface: 'desktop', component: 'AbovePrompt', props: BAND_PROPS })
   expect(await hidden.find({ type: 'Svg' })).toBeUndefined()
   await hidden.unmount()
+})
+
+test('a /clear, /resume or /branch sets the HUD up again, with the classic events out of reach', {
+  timeoutMs: 10_000,
+  // An organization's security default: seated above every installed plugin, it passes the
+  // classic events by them, so no `classic.SessionStart` hook of the HUD's would run.
+  plugins: [{
+    name: 'sec-default',
+    tier: 'prepend',
+    register(on) {
+      on('classic.*', ($, e, next) => next.to(e, 'append'))
+    },
+  }],
+}, async ($, on) => {
+  const session = { id: 'first', tokens: 84_000 }
+  const clock = engine(on, session)
+  // $.state as the session that follows finds it: empty until the plugin writes it again
+  const emptied = new Set<string>()
+  on('state.get', async ($, e, next) => {
+    const kept = await next(e)
+    return emptied.has(e.key) ? { value: { value: undefined, version: kept.value.version } } : kept
+  })
+  on('state.set', ($, e, next) => {
+    emptied.delete(e.key)
+    return next(e)
+  })
+  on('session.end', ($, e) => ({ sessionId: e.sessionId }))
+  on('session.measure', ($, e) => ({ changed: e.changed }))
+  on('classic.SessionStart', () => ({}))
+  const moveOn = (id: string, tokens: number) => {
+    session.id = id
+    session.tokens = tokens
+    emptied.add('prefs').add('snapshot')
+  }
+  const bandAlt = async () => {
+    const band = await $.ui.mount({ plugin: 'minecraft-hud', surface: 'desktop', component: 'AbovePrompt', props: BAND_PROPS })
+    const svg = await band.find({ type: 'Svg' })
+    await band.unmount()
+    return svg === undefined ? undefined : String(svg.props.alt)
+  }
+  await $.session.start({ cwd: '/tmp/repo', surface: 'desktop', isInteractive: true })
+  expect(await bandAlt()).toContain('Kontext 42 %')
+
+  // /clear: the session ends, the process goes on under another, and no session.start follows
+  await $.session.end({ reason: 'clear', sessionId: 'first', resume: { id: 'first' } })
+  moveOn('second', 0)
+  await $.classic.SessionStart({ source: 'clear' })
+  expect(await bandAlt()).toBeUndefined()
+  await clock.advance(1000)
+  expect(await bandAlt()).toContain('Kontext 0 %')
+
+  // /branch ends nothing: the next measurement finds the other session
+  moveOn('third', 10_000)
+  expect(await bandAlt()).toBeUndefined()
+  await $.session.measure({ context: { window: 200_000, tokens: 12_000, percent: 6 }, rateLimits: [], changed: ['context'] })
+  expect(await bandAlt()).toContain('Kontext 6 %')
+
+  // and where nothing is measured, the minute's beat does
+  moveOn('fourth', 20_000)
+  await clock.advance(60_000)
+  expect(await bandAlt()).toContain('Kontext 10 %')
 })
