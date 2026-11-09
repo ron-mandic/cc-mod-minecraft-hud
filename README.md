@@ -49,9 +49,9 @@ Im Desktop-Band entfallen Füllwörter: Uhrzeiten ohne „Reset“, Token-Verhä
 
 ## Breite und Größe
 
-Das Band ist ein einziges SVG mit selbst berechnetem `space-between`: **HUD · Sitzung | Woche Fable Sonnet Kontext**. Alle Textspalten rechts vom Strich bilden eine gemeinsame Anzeigegruppe: feste 24 px Abstand zwischen ihren reservierten Spaltenbreiten, auch wenn Woche oder Sonnet bei schmalem Fenster entfallen. Kontext bekommt keinen eigenen wachsenden Außenabstand mehr. Für die Trennung zur Sitzung sind mindestens 64 px reserviert, damit auf beiden Seiten des Strichs mehr Luft bleibt als innerhalb der rechten Gruppe. Zwischen HUD und Text sind mindestens 32 px Platz; nur die äußeren Gruppenabstände wachsen mit der Chatbreite. Platzbedarf und Zeichnung verwenden dieselben Gruppenregeln.
+Das Band ist ein einziges SVG mit selbst berechnetem `space-between`: **HUD · Sitzung | Woche Fable Sonnet Kontext**. Alle Textspalten rechts vom Strich bilden eine gemeinsame Anzeigegruppe: feste 24 px Abstand zwischen ihren reservierten Spaltenbreiten, auch wenn Woche oder Sonnet bei schmalem Fenster entfallen. Kontext bekommt keinen eigenen wachsenden Außenabstand mehr. Für die Trennung zur Sitzung sind feste 64 px reserviert, damit auf beiden Seiten des Strichs mehr Luft bleibt als innerhalb der rechten Gruppe. Sitzung, Strich und rechte Gruppe bleiben so bei jeder Breite ein kompakter Block am rechten Rand. Zwischen HUD und Text sind mindestens 32 px Platz; nur dieser Abstand wächst mit der Chatbreite. Platzbedarf und Zeichnung verwenden dieselben Gruppenregeln.
 
-- **Standard:** feste Größe **1,5**, auch in neuen Repos und Chats (42 px Bandhöhe). Zusätzliche Breite wächst in die Abstände, nicht in die Icons. Optional wählt `auto` Größe **2**, wenn HUD und alle Spalten hineinpassen, sonst **1,5**. Die Pixel-Art wird nie stufenlos skaliert.
+- **Standard:** feste Größe **1,5**, auch in neuen Repos und Chats (42 px Bandhöhe). Zusätzliche Breite wächst in den Abstand zwischen HUD und Text, nicht in die Icons. Optional wählt `auto` Größe **2**, wenn HUD und alle Spalten hineinpassen, sonst **1,5**. Die Pixel-Art wird nie stufenlos skaliert.
 - **Nur Grafik:** Sind keine Textspalten mehr sichtbar — wegen Platzmangels oder `/hud zahlen aus` — steht das gesamte HUD inklusive XP-Zahl horizontal mittig. Sobald Textspalten sichtbar sind, gilt wieder das linksbündige Gruppenlayout. Nur in der Desktop-App, CLI unverändert.
 - **Was bei Enge wegfällt,** in dieser Reihenfolge: das Wochen-Reset (der Fable-Reset gilt meist auch für die Woche), die Sonnet-Spalte, das Fable-Reset, die Wochen-Spalte, die Tokens, die Fable-Spalte. Danach folgen das Sitzungs-Reset und die Kontext-Spalte (den Kontext zeigt das XP-Level weiter an), zuletzt die Sitzung.
 - **Die Spalten springen nicht:** Jede Spalte reserviert die Breite ihrer längsten Form (`100 %`, `Mi 00:00`, beim Kontext `000K / 1M` bzw. `000K / 200K`). Die kürzeren Texte sparen auch tatsächlich reservierten Platz.
@@ -60,7 +60,7 @@ Fable folgt derselben Abstandsregel wie alle anderen rechten Spalten und braucht
 
 Die Umschaltpunkte hängen von den vorhandenen Werten ab (z. B. Sonnet-Spalte und Fenstergröße). Die lokale Vorschau zeigt mehrere Breiten mit 200K- und 1M-Kontext; die kürzeren Uhrzeiten und Token-Verhältnisse lassen Details länger sichtbar bleiben.
 
-Die Breite des Bands kennt die Mod in Zellen der Code-Schrift (`bodyColumns`). `CELL_PX` oben in `hooks/desktop.ts` rechnet sie in Pixel um (7,8 px je Zelle). `/hud debug` zeigt, wie viele Zellen dein Band hat.
+Die Breite des Bands kennt die Mod in Zellen der Code-Schrift (`bodyColumns`). `CELL_PX` oben in `hooks/desktop.ts` rechnet sie in Pixel um (8,35 px je Zelle). Die fünf Zellen, die Claude Code am rechten Ende für sich freihält, nutzt das Band mit (`ENGINE_CELLS`). `/hud debug` zeigt, wie viele Zellen dein Band hat.
 
 ## Woher die Zahlen kommen
 

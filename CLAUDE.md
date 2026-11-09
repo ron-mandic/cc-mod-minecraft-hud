@@ -33,7 +33,7 @@ minecraft-hud draws Mojang's original Minecraft sprites and font. They may not b
 
 For a user-wide installation, enable `minecraft-hud@ron-mandic` in `~/.claude/settings.json`. Register the local clone as a directory marketplace. Any `extraKnownMarketplaces` entry must use the local clone's absolute path in the user's private settings, never a committed personal path.
 
-The install is a copy pinned to `version`, at `~/.claude/plugins/cache/ron-mandic/minecraft-hud/<version>/`; it is not loaded in place. To ship a change:
+The install is a copy pinned to `version`, at `~/.claude/plugins/cache/ron-mandic/minecraft-hud/<version>/`. The desktop app (2.1.317) still reads the mod from this folder: `/reload-plugins` reports `re-read from its folder`, and an edit here was live after it without a bump (seen twice on 2026-11-10). So an unfinished edit in the working tree shows in the band after the next reload. The cache copy changes only on a bump: edit without one and the copy under the current version is stale while the app shows the folder, so never ship under a version that is already in the cache. To ship a change:
 
 1. Bump `version` in `plugins/minecraft-hud/.claude-plugin/plugin.json`.
 2. Run `claude plugin update minecraft-hud@ron-mandic`.
@@ -80,7 +80,7 @@ Icons show what is left, rounded up like health. Text columns show what is used.
 
 ## Rendering, and what was learned the hard way
 
-- **Desktop band.** **One** sized `Svg`: HUD, session, one right-hand detail group (week/Fable/Sonnet/context). `groupOf`/`minimumGaps` keep all right-hand column gaps at 24 CSS px even when columns disappear. Context is not its own expanding group. Reserve at least 64 CSS px for the session/detail divider gap, 32 px after the HUD; only outer group gaps absorb surplus width. `bandWidth` and drawing share this policy. The surface scales down if the room estimate is too wide.
+- **Desktop band.** **One** sized `Svg`: the HUD left, the columns right as one block (session, the rule, then week/Fable/Sonnet/context). `groupOf`/`minimumGaps` keep all right-hand column gaps at 24 CSS px even when columns disappear, and the session/detail divider gap at 64 CSS px. Context is not its own expanding group. Only the gap after the HUD (at least 32 px) absorbs surplus width: spread over two gaps, the session, the rule and the details looked torn apart in a wide band. `bandWidth` and drawing share this policy. The surface scales down if the room estimate is too wide.
 - **Pixel geometry.** Columns have 3 text lines on the HUD rows (y 0/10/20), height 28. Columns reserve their widest form (`Mi 00:00`, no Reset prefix), so the band does not shift; context reserves `000K / <window>` (`1M` from a million on). New chats show context as `0 %` and `0 / 1M` (or `0 Tokens` if no window is known), as a presentation default only. Never borrow another chat's measurement or treat unknown budgets as zero; responsive fitting may hide columns at narrow widths.
 - **Alignment.** No per-column optical offset: Fable uses the same internal spacing as week/Sonnet/context. This keeps the right-hand group coherent at narrow and wide widths; text remains left-aligned.
 - **HUD-only centering.** If fitting leaves no columns or numbers are off, wrap all drawing content (sprites and writer-rendered XP digits) in one translated group, centered within the existing sized SVG on whole sprite pixels. With any visible column, leave the normal layout unchanged. The preview rasterizer handles translated groups and offsets the XP clip with them. No CLI changes.
@@ -90,12 +90,20 @@ Icons show what is left, rounded up like health. Text columns show what is used.
 - **Keep the band to one sized `Svg`, and always pass it `width` and `height`.** 0.2.1 and 0.2.2 drew a row of several `Svg`s (first unsized, in `width="100%"`/`flexWrap` boxes, then sized in a plain row), and the desktop showed no band at all, while the test kit passed. A single sized image is what the desktop drew.
 - **When the band is missing,** run `/hud debug`. Its `Band:` lines say whether the hook drew, what, and any error. Refusals of an installed mod go only to the engine's debug log.
 - **Text** is drawn in the Minecraft bitmap font with the game's shadow (colour >> 2, offset 1,1). Desktop details are terse: `16:30`, `Mi 00:00`, `785K / 1M`. `/hud` is a short icon-free status (four lines normally, Sonnet if in use, data problems if needed). `/hud details` retains verbose explanations, exact token figures, source, preferences and commands, also icon-free. `/hud hilfe` lists commands. The hooks environment has the local timezone (Europe/Berlin).
-- **`CELL_PX = 7.8`** turns `bodyColumns` into CSS px. It is an estimate: `/hud debug` shows the real cell count; adjust if columns drop too early or wrap.
+- **`CELL_PX = 8.35`** turns `bodyColumns` into CSS px (`roomOf`). It is an estimate, read off two desktop screenshots: 85 cells plus the engine's five fill a panel 752 px wide inside its padding, so 8.27 to 8.36 px a cell. At 7.8 the image came out about 40 px narrower than its slot, with no surplus left to spread; at 8.25 it drew whole and unscaled. `/hud debug` shows the real cell count; adjust if columns drop too early or wrap. The tests and `tools/preview.ts` import the constants, and test cases that mean a width say it in px (`cellsFor`).
+- **The engine's five cells (trial).** `bodyColumns` leaves out five cells the engine keeps at the right end for its `[-]` (about 42 px). No desktop screenshot shows a `[-]` there, so `roomOf` adds `ENGINE_CELLS` back and the image runs to the panel's right padding, as the HUD does on the left. Seen on 2026-11-10 at 85 cells: the image drew whole and unscaled and ended 9 px before the panel's right edge (8 px on the left). This is outside what the engine promises for the tree: take it back if the band comes out scaled, clipped or under a `[-]`.
+- **Reading a screenshot.** A 1x screenshot gives `bodyColumns` exactly: lay the band out for a range of cell counts and compare `columnStarts × scale` with the ink; only one count matches. HUD ink 273 px wide at 1.5 means the desktop did not scale the image. The panel measured 768 px wide with 8 px padding left and right, 10 px above and below.
+- **`space-between` is only as good as the room.** The image has a fixed pixel width, and `SvgProps.width` takes CSS pixels only. When the estimate equals the least width the columns need, there is nothing to spread and the band looks left-packed, though the layout code is right.
+- **Reserved widths widen the visible gaps.** Columns reserve `Mi 00:00`; with same-day resets (`23:00`) the 24 px between week, Fable and context read as about 40 px.
+- **`auto` moved.** With the larger room, `auto` reaches scale 2 in narrower windows than before. Not watched in the app.
 - **Validator rule.** Every function that receives `$` must be a top-level function in `register.tsx`, because the validator traces `$`. Helpers in other files stay pure.
 - **Engine rules.** No `$.state.set` while rendering. Promises nobody awaits go through `background()`.
 - **Session switches.** `/clear`, `/resume` and `/branch` go on under another session id with no new `session.start`; `$.state` is the session's, so the mod expects it empty there. `revive` runs `setup` again when `$.session.id()` differs from the one `setup` last saw or the prefs are missing. It is asked 1 s after `session.end` (`clear`, `resume`), on every `session.measure` and on the minute's beat.
 - **No `classic.*` hooks.** For Team and Enterprise organizations, and on machines with managed settings, the built-in `cc-plugin-sec-default` sits above every installed plugin and passes all `classic.*` events by them (`next.to`). Until 0.2.13 the re-setup hung on `classic.SessionStart`, so there `setup` never ran again after a `/clear`, and sessions reported `its classic.SessionStart hook was skipped`. The last test seats such a plugin above the mod.
 - **Tests.** Every `$` call beneath the plugin needs an answer, `on('noun.method', () => ({ value }))`, including `session.start`, `session.id` and `ui.render`. `$.session.authorize` works only once the plugin's scan allows it.
+- **A green suite is not a type-check.** `claude plugin test` runs the TypeScript without checking types, and this machine has no `tsc`. Nothing since 0.2.13 has been type-checked.
+- **Prove a new test against the old code.** A test that passes at once proves little. Copy the plugin to a scratch folder, put the old code back there and run `claude plugin test <copy>`: the session-switch test then failed with the engine's own `hook was skipped` line, the compact-block test with a 426 px gap.
+- **Cell counts in tests drift.** A fixed `bodyColumns` means another width whenever `CELL_PX` or `ENGINE_CELLS` move: three cases went red, the rest kept passing on a wider band. Cases that mean a width use `cellsFor(px)`.
 
 ## Workflow
 
@@ -125,5 +133,16 @@ When removing local files, move them to `~/.Trash` rather than deleting them out
 
 - `extra_usage` (paid overage) is not drawn. Golden absorption hearts would fit.
 - No terminal sprite mode (`Image` and kitty graphics) yet; the terminal shows glyphs only.
-- `CELL_PX` is not yet measured on the desktop.
+- `CELL_PX` and `ENGINE_CELLS` rest on screenshots at one window width (85 cells, scale 1.5). Still to watch in the app: other widths, zoom levels and a docked pane, and that no `[-]` appears over the band's right end.
 - The re-setup after `/clear`, `/resume` and `/branch` is covered by the test kit only, not yet watched in the desktop app.
+- The README images in `docs/` still show the old spacing; `bun plugins/minecraft-hud/tools/preview.ts --docs` redraws them.
+
+## Ways to improve the band
+
+- **Measure the width instead of estimating it.** Everything the band spreads rests on `CELL_PX`. A `/hud` preference for the cell width would allow tuning without a release. A one-off calibration image wider than any slot would show the slot's width, if the desktop scales it down. A `Client` element could report its own pixel width.
+- **Make the five cells switchable.** If a later engine draws its `[-]` on the desktop, the band sits under it or is scaled. A preference, or a check on `$.session.version()`, would let `roomOf` fall back to `bodyColumns` alone.
+- **Tighter detail columns.** Reserve the day prefix only while a reset lies on another day, and accept one shift when that changes; or right-align the details in their columns.
+- **A surer re-setup.** The 1 s after `session.end` is a guess at when the engine has switched sessions. If the band comes late after a `/clear`, let the first `ui.render` that finds no prefs schedule `revive` (through a timer, never a state write while rendering).
+- **Type-check in the workflow.** Pin `typescript` as a dev dependency with a lockfile and run `tsc -p` beside validate and test.
+- **A truer preview.** `tools/preview.ts` pads by 12 px and knows no panel. Model the measured panel (768 px, padding 8/10 px, 85 + 5 cells) so the preview shows what the desktop draws.
+- **Revisit `auto`.** `LARGE_ENOUGH` and the flip to scale 2 were tuned for the smaller room.
